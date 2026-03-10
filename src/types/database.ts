@@ -7,7 +7,7 @@ export type UserRole = 'admin' | 'operator' | 'viewer';
 export interface Target {
   id: string;
   name: string;
-  provider: string; // Dynamic string from DB
+  provider: string;
   external_identifier: string;
   status: TargetStatus;
   monitor_enabled: boolean;

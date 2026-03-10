@@ -16,7 +16,7 @@ const SystemLogEntrySchema = z.object({
 
 const RecordingEventEntrySchema = z.object({
   id: z.string().describe('Unique identifier for the recording event entry.'),
-  event_type: z.string().describe('Type of recording event (e.g., START, STOP, ERROR, LIVE_DETECTED).'),
+  event_type: z.string().describe('Type of recording event (e.g., START, STOP, ERROR).'),
   message: z.string().describe('The main message describing the recording event.'),
   context: z.record(z.any()).optional().describe('JSON object providing additional context for the event.'),
   created_at: z.string().describe('Timestamp when the event occurred (ISO format).'),

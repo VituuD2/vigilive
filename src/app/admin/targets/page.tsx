@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, AlertCircle, User, Radio, Youtube, Twitch, Globe } from 'lucide-react';
+import { Search, Filter, AlertCircle, Radio, Youtube, Twitch, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { TargetDialog } from '@/components/admin/target-dialog';

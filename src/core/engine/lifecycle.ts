@@ -26,7 +26,7 @@ export async function transitionRecordingStatus(
 
   if (error) throw error;
 
-  // Log the transition using 'context' as per schema
+  // Log the transition
   await supabase.from('system_logs').insert([{
     level: newStatus === 'failed' ? 'error' : 'info',
     message: `Recording ${recordingId} transitioned to ${newStatus}`,
@@ -50,13 +50,13 @@ export async function initiateRecording(targetId: string, title: string, provide
     .select('id')
     .eq('target_id', targetId)
     .in('status', ['processing', 'recording'])
-    .single();
+    .maybeSingle();
 
   if (existing) {
     return null;
   }
 
-  // 2. Create the pending recording
+  // 2. Create the processing recording
   const { data, error } = await supabase
     .from('recordings')
     .insert([{

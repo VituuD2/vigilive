@@ -3,19 +3,19 @@ import { NextResponse } from 'next/server';
 
 /**
  * GET /api/worker/tasks
- * Returns the next pending recording job for an external worker.
+ * Returns the next processing recording job for an external worker.
  */
 export async function GET() {
   const supabase = await createClient();
   
-  // Find a pending task
+  // Find a processing task
   const { data: task, error } = await supabase
     .from('recordings')
     .select('*, targets(provider, external_identifier)')
     .eq('status', 'processing')
     .order('started_at', { ascending: true })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error || !task) {
     return NextResponse.json({ task: null });
@@ -55,7 +55,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Log the event using 'context' as per schema
+  // Log the event
   await supabase.from('system_logs').insert([{
     level: status === 'failed' ? 'error' : 'info',
     message: `Worker updated recording ${recordingId} to ${status}`,

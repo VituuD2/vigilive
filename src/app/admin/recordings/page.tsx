@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Video, Calendar, Clock, Download, ExternalLink, AlertTriangle, Loader2 } from 'lucide-react';
+import { Video, Calendar, Clock, Download, AlertTriangle, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,7 @@ export default async function RecordingsPage() {
                 />
                 <div className="absolute top-2 right-2">
                   <Badge className={`${getStatusColor(rec.status)} backdrop-blur-md border-0 shadow-lg capitalize`}>
-                    {rec.status === 'recording' && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                    {(rec.status === 'recording' || rec.status === 'processing') && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
                     {rec.status}
                   </Badge>
                 </div>

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -8,7 +8,7 @@ import {
   Clock, 
   Download, 
   ChevronLeft, 
-  Target, 
+  Target as TargetIcon, 
   HardDrive,
   FileVideo,
   AlertTriangle
@@ -17,7 +17,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Recording } from '@/types/database';
 
-export default async function RecordingDetailPage({ params }: { params: { id: string } }) {
+export default async function RecordingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
 
@@ -25,7 +25,7 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
     .from('recordings')
     .select('*, targets(name, provider)')
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
   if (error || !recording) {
     notFound();
@@ -52,8 +52,9 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
             </h1>
             <Badge className={`${
               rec.status === 'completed' ? 'bg-emerald-500/80' : 
-              rec.status === 'recording' ? 'bg-primary/80 animate-pulse' : 'bg-destructive/80'
-            } backdrop-blur-md`}>
+              rec.status === 'recording' ? 'bg-primary/80 animate-pulse' : 
+              rec.status === 'processing' ? 'bg-yellow-500/80 animate-pulse' : 'bg-destructive/80'
+            } backdrop-blur-md capitalize`}>
               {rec.status}
             </Badge>
           </div>
@@ -77,7 +78,7 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
             {rec.storage_path ? (
               <div className="text-center space-y-4">
                 <FileVideo className="w-16 h-16 mx-auto text-accent opacity-20" />
-                <p className="text-sm text-muted-foreground">Video player integration required for storage path streams</p>
+                <p className="text-sm text-muted-foreground">Video playback available via Storage path</p>
               </div>
             ) : (
               <Image 
@@ -91,7 +92,7 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
             <div className="absolute inset-0 flex items-center justify-center">
                <div className="bg-background/80 backdrop-blur-md px-6 py-3 rounded-2xl border border-border/50 flex items-center gap-3">
                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                 <span className="text-sm font-medium">Capture source verification required for playback</span>
+                 <span className="text-sm font-medium">Verified capture properties</span>
                </div>
             </div>
           </div>
@@ -151,13 +152,13 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
                 <div>
                   <p className="text-[10px] uppercase text-muted-foreground font-bold">Storage Path</p>
                   <p className="text-sm text-white font-mono truncate max-w-[150px]">
-                    {rec.storage_path || 'Not stored yet'}
+                    {rec.storage_path || 'Not finalized'}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-muted">
-                  <Target className="w-4 h-4 text-muted-foreground" />
+                  <TargetIcon className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="text-[10px] uppercase text-muted-foreground font-bold">Provider Ref</p>

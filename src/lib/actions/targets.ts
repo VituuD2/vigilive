@@ -21,9 +21,9 @@ export async function createTarget(formData: z.infer<typeof targetSchema>) {
       name: formData.name,
       provider: formData.provider,
       external_identifier: formData.external_identifier,
-      status: 'paused' as TargetStatus, // Matching schema default
-      monitor_enabled: false, // Matching schema default
-      check_interval_seconds: 60, // Matching schema default
+      status: 'paused' as TargetStatus,
+      monitor_enabled: false,
+      check_interval_seconds: 60,
       created_by: user?.id || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
