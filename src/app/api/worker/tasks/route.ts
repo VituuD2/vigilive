@@ -1,47 +1,32 @@
-
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 
 /**
  * GET /api/worker/tasks
- * Returns the next processing recording job for an external worker.
- * Uses atomic selection to prevent multiple workers claiming the same job.
+ * Returns the next processing recording job using an atomic PostgreSQL function.
+ * This prevents race conditions in distributed worker environments.
  */
 export async function GET() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   
-  // Find a task that is 'processing' and not recently locked
-  const { data: task, error } = await supabase
-    .from('recordings')
-    .select('*, targets(name, provider, external_identifier)')
-    .eq('status', 'processing')
-    .is('locked_at', null)
-    .order('started_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // Call the atomic RPC function
+  const { data, error } = await supabase.rpc('claim_recording_task');
 
-  if (error || !task) {
+  if (error) {
+    console.error('RPC claim_recording_task error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!data || data.length === 0) {
     return NextResponse.json({ task: null });
   }
 
-  // Atomic lock the task
-  const { error: lockError } = await supabase
-    .from('recordings')
-    .update({ 
-      locked_at: new Date().toISOString(),
-      status: 'recording' 
-    })
-    .eq('id', task.id);
-
-  if (lockError) {
-    // If we fail to lock, someone else probably got it
-    return NextResponse.json({ task: null });
-  }
+  const task = data[0];
 
   // Log the claim
   await supabase.from('system_logs').insert([{
     level: 'info',
-    message: `Worker claimed recording job ${task.id}`,
+    message: `Worker successfully claimed recording job ${task.id} (Target: ${task.target_name})`,
     recording_id: task.id,
     target_id: task.target_id
   }]);
@@ -51,13 +36,13 @@ export async function GET() {
 
 /**
  * PATCH /api/worker/tasks
- * Allows worker to update progress and finish recordings.
+ * Allows worker to update progress and finish recordings using Admin Client.
  */
 export async function PATCH(request: Request) {
   const body = await request.json();
   const { recordingId, status, storagePath, errorMessage, durationSeconds, fileSizeBytes } = body;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const updates: any = { 
     status,
@@ -71,7 +56,9 @@ export async function PATCH(request: Request) {
   
   if (status === 'completed' || status === 'failed') {
     updates.ended_at = new Date().toISOString();
-    updates.locked_at = null; // Release lock
+    // Releasing the lock happens naturally by changing status
+    // but we can explicitly null it if needed for audit.
+    updates.locked_at = null; 
   }
 
   const { error } = await supabase
@@ -86,7 +73,7 @@ export async function PATCH(request: Request) {
   // Log the event
   await supabase.from('system_logs').insert([{
     level: status === 'failed' ? 'error' : 'info',
-    message: `Worker task ${recordingId} update: ${status}`,
+    message: `Worker task ${recordingId} update received: ${status}`,
     recording_id: recordingId,
     context: { storagePath, durationSeconds, error: errorMessage }
   }]);

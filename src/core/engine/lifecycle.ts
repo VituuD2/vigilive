@@ -1,16 +1,15 @@
-
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { RecordingStatus } from '@/types/database';
 
 /**
- * Handles the state transitions of a recording job.
+ * Handles the state transitions of a recording job using the admin client.
  */
 export async function transitionRecordingStatus(
   recordingId: string, 
   newStatus: RecordingStatus,
   updates: Record<string, any> = {}
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('recordings')
@@ -43,7 +42,7 @@ export async function transitionRecordingStatus(
  * Prevents duplicates for targets already being recorded.
  */
 export async function initiateRecording(targetId: string, title: string, provider: string, externalStreamId?: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // 1. Atomic check for active recordings
   const { data: existing } = await supabase
