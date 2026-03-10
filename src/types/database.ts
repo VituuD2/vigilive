@@ -1,13 +1,16 @@
 
-export type TargetStatus = 'active' | 'paused' | 'error' | 'idle';
+export type TargetStatus = 'active' | 'paused' | 'error' | 'idle' | 'pending_auth';
 export type RecordingStatus = 'recording' | 'completed' | 'failed';
 
 export interface Target {
   id: string;
   created_at: string;
   name: string;
-  provider: string;
-  external_identifier: string;
+  provider: 'youtube' | 'twitch' | 'rtmp' | 'tiktok';
+  external_identifier: string; // The username or channel ID
+  platform_user_id?: string;    // Unique ID from the provider
+  display_name?: string;       // Friendly name from the provider
+  avatar_url?: string;         // Profile picture URL
   status: TargetStatus;
   last_checked_at: string | null;
   metadata?: Record<string, any>;
@@ -25,6 +28,8 @@ export interface Recording {
   recording_path: string | null;
   targets?: {
     name: string;
+    avatar_url?: string;
+    display_name?: string;
   };
 }
 

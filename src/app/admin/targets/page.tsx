@@ -1,12 +1,13 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, MoreVertical, Play, Pause, Trash2, AlertCircle } from 'lucide-react';
+import { Search, Filter, AlertCircle, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { TargetDialog } from '@/components/admin/target-dialog';
 import { TargetActionMenu } from '@/components/admin/target-action-menu';
 import { Target } from '@/types/database';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -66,7 +67,7 @@ export default async function TargetsPage() {
             <TableRow>
               <TableHead>Target Name</TableHead>
               <TableHead>Provider</TableHead>
-              <TableHead>External ID</TableHead>
+              <TableHead>Account / ID</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Last Check</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -77,9 +78,17 @@ export default async function TargetsPage() {
               typedTargets.map((target) => (
                 <TableRow key={target.id} className="hover:bg-muted/10 transition-colors">
                   <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span>{target.name}</span>
-                      <span className="text-[10px] text-muted-foreground font-mono">{target.id.split('-')[0]}</span>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8 border border-border/50">
+                        <AvatarImage src={target.avatar_url} />
+                        <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold">{target.display_name || target.name}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">
+                          {target.provider} • {target.id.split('-')[0]}
+                        </span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -87,15 +96,18 @@ export default async function TargetsPage() {
                       {target.provider}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{target.external_identifier}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {target.provider === 'tiktok' ? `@${target.external_identifier}` : target.external_identifier}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className={`h-2 w-2 rounded-full ${
                         target.status === 'active' ? 'bg-emerald-500 animate-pulse' : 
                         target.status === 'error' ? 'bg-destructive' : 
-                        target.status === 'paused' ? 'bg-yellow-500' : 'bg-muted-foreground'
+                        target.status === 'paused' ? 'bg-yellow-500' : 
+                        target.status === 'pending_auth' ? 'bg-accent' : 'bg-muted-foreground'
                       }`} />
-                      <span className="capitalize text-sm">{target.status}</span>
+                      <span className="capitalize text-sm">{target.status.replace('_', ' ')}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">

@@ -7,8 +7,11 @@ import { z } from 'zod';
 
 const targetSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  provider: z.string().min(1, 'Provider is required'),
+  provider: z.enum(['youtube', 'twitch', 'rtmp', 'tiktok']),
   external_identifier: z.string().min(1, 'External ID is required'),
+  platform_user_id: z.string().optional(),
+  display_name: z.string().optional(),
+  avatar_url: z.string().optional(),
 });
 
 export async function createTarget(formData: z.infer<typeof targetSchema>) {
@@ -18,7 +21,8 @@ export async function createTarget(formData: z.infer<typeof targetSchema>) {
     .from('targets')
     .insert([{
       ...formData,
-      status: 'idle',
+      status: formData.provider === 'tiktok' ? 'pending_auth' : 'idle',
+      created_at: new Date().toISOString(),
     }]);
 
   if (error) throw new Error(error.message);
