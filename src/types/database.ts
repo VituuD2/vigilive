@@ -9,6 +9,7 @@ export interface Target {
   name: string;
   provider: TargetProvider;
   external_identifier: string;
+  room_id: string | null;
   monitoring_status: MonitoringStatus;
   is_live: boolean;
   last_checked_at: string | null;
@@ -28,6 +29,7 @@ export interface Recording {
   ended_at: string | null;
   duration_seconds: number | null;
   error_message?: string;
+  locked_at: string | null;
   targets?: {
     name: string;
     provider: TargetProvider;
