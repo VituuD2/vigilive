@@ -1,9 +1,12 @@
 
-import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
-import { Plus, Search, Filter, MoreVertical, Play, Pause, Trash2 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { createClient } from '@/lib/supabase/server';
+import { Button } from '@/components/ui/button';
+import { Search, Filter, MoreVertical, Play, Pause, Trash2, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { TargetDialog } from '@/components/admin/target-dialog';
+import { TargetActionMenu } from '@/components/admin/target-action-menu';
+import { Target } from '@/types/database';
 import {
   Table,
   TableBody,
@@ -11,20 +14,28 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@/components/ui/table';
 
 export default async function TargetsPage() {
-  const supabase = await createClient()
-  const { data: targets } = await supabase
+  const supabase = await createClient();
+  const { data: targets, error } = await supabase
     .from('targets')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[400px] border-2 border-dashed border-destructive/20 rounded-2xl bg-destructive/5 space-y-4">
+        <AlertCircle className="w-10 h-10 text-destructive" />
+        <div className="text-center">
+          <h3 className="font-bold text-lg">Failed to load targets</h3>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const typedTargets = (targets as Target[]) || [];
 
   return (
     <div className="space-y-6">
@@ -33,10 +44,7 @@ export default async function TargetsPage() {
           <h1 className="text-3xl font-bold tracking-tight text-white">Monitoring Targets</h1>
           <p className="text-muted-foreground">Manage streams and sources you want to monitor.</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Target
-        </Button>
+        <TargetDialog />
       </div>
 
       <div className="flex items-center gap-4">
@@ -65,17 +73,17 @@ export default async function TargetsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {targets && targets.length > 0 ? (
-              targets.map((target) => (
+            {typedTargets.length > 0 ? (
+              typedTargets.map((target) => (
                 <TableRow key={target.id} className="hover:bg-muted/10 transition-colors">
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{target.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{target.id.split('-')[0]}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{target.id.split('-')[0]}</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="uppercase text-[10px]">
+                    <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">
                       {target.provider}
                     </Badge>
                   </TableCell>
@@ -83,8 +91,9 @@ export default async function TargetsPage() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className={`h-2 w-2 rounded-full ${
-                        target.status === 'active' ? 'bg-emerald-500' : 
-                        target.status === 'error' ? 'bg-destructive' : 'bg-muted-foreground'
+                        target.status === 'active' ? 'bg-emerald-500 animate-pulse' : 
+                        target.status === 'error' ? 'bg-destructive' : 
+                        target.status === 'paused' ? 'bg-yellow-500' : 'bg-muted-foreground'
                       }`} />
                       <span className="capitalize text-sm">{target.status}</span>
                     </div>
@@ -93,31 +102,14 @@ export default async function TargetsPage() {
                     {target.last_checked_at ? new Date(target.last_checked_at).toLocaleString() : 'Never'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2">
-                          <Play className="w-4 h-4 text-emerald-500" /> Start Monitor
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2">
-                          <Pause className="w-4 h-4 text-yellow-500" /> Pause
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2 text-destructive focus:bg-destructive/10">
-                          <Trash2 className="w-4 h-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <TargetActionMenu target={target} />
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
-                  No targets found. Start by adding one.
+                  No monitoring targets found. Click the button above to add your first source.
                 </TableCell>
               </TableRow>
             )}
@@ -125,5 +117,5 @@ export default async function TargetsPage() {
         </Table>
       </div>
     </div>
-  )
+  );
 }
