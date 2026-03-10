@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Video, Calendar, Clock, Download, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Video, Calendar, Clock, Download, ExternalLink, AlertTriangle, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ export default async function RecordingsPage() {
   const supabase = await createClient();
   const { data: recordings, error } = await supabase
     .from('recordings')
-    .select('*, targets(name)')
+    .select('*, targets(name, provider)')
     .order('started_at', { ascending: false });
 
   if (error) {
@@ -27,11 +27,23 @@ export default async function RecordingsPage() {
 
   const typedRecordings = (recordings as Recording[]) || [];
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-emerald-500/80';
+      case 'recording': return 'bg-primary/80 animate-pulse';
+      case 'pending': return 'bg-yellow-500/80';
+      case 'failed': return 'bg-destructive/80';
+      default: return 'bg-muted/80';
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Recordings Library</h1>
-        <p className="text-muted-foreground">Access and manage all captured stream content.</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Capture Library</h1>
+          <p className="text-muted-foreground">Manage and review all cloud-recorded stream sessions.</p>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -41,16 +53,14 @@ export default async function RecordingsPage() {
               <div className="relative aspect-video bg-muted overflow-hidden">
                 <Image 
                   src={rec.thumbnail_path || `https://picsum.photos/seed/${rec.id}/640/360`}
-                  alt={rec.title || 'Recording thumbnail'}
+                  alt="Recording thumbnail"
                   fill
-                  data-ai-hint="video stream"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  data-ai-hint="video thumbnail"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-60 group-hover:opacity-100"
                 />
                 <div className="absolute top-2 right-2">
-                  <Badge className={`${
-                    rec.status === 'completed' ? 'bg-emerald-500/80' : 
-                    rec.status === 'recording' ? 'bg-primary/80 animate-pulse' : 'bg-destructive/80'
-                  } backdrop-blur-md border-0 shadow-lg`}>
+                  <Badge className={`${getStatusColor(rec.status)} backdrop-blur-md border-0 shadow-lg capitalize`}>
+                    {rec.status === 'recording' && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
                     {rec.status}
                   </Badge>
                 </div>
@@ -63,10 +73,10 @@ export default async function RecordingsPage() {
               <CardContent className="p-4 space-y-3">
                 <div className="space-y-1">
                   <h3 className="font-semibold truncate text-white leading-none">
-                    {rec.title || `Recording ${rec.id.split('-')[0]}`}
+                    Session {rec.id.split('-')[0]}
                   </h3>
                   <p className="text-xs text-muted-foreground truncate">
-                    Target: {rec.targets?.name || 'Deleted Target'}
+                    Source: <span className="text-accent uppercase font-mono">{rec.targets?.provider}</span> • {rec.targets?.name}
                   </p>
                 </div>
                 
@@ -82,13 +92,13 @@ export default async function RecordingsPage() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button asChild variant="outline" size="sm" className="flex-1 text-xs h-8 border-border/60 hover:border-accent/50">
+                  <Button asChild variant="outline" size="sm" className="flex-1 text-xs h-8 border-border/60">
                     <Link href={`/admin/recordings/${rec.id}`}>
                       View Details
                     </Link>
                   </Button>
                   {rec.recording_path && (
-                    <Button variant="secondary" size="icon" className="h-8 w-8" title="Download">
+                    <Button variant="secondary" size="icon" className="h-8 w-8">
                       <Download className="h-3 w-3" />
                     </Button>
                   )}
@@ -100,8 +110,8 @@ export default async function RecordingsPage() {
           <div className="col-span-full py-20 flex flex-col items-center justify-center text-muted-foreground space-y-4 border-2 border-dashed border-border/30 rounded-2xl">
             <Video className="w-12 h-12 opacity-10" />
             <div className="text-center">
-              <p className="font-medium">No recordings in the library</p>
-              <p className="text-xs">Once targets are active, recordings will appear here.</p>
+              <p className="font-medium">Library is empty</p>
+              <p className="text-xs">Once targets are active and streams go live, recordings will appear here.</p>
             </div>
           </div>
         )}

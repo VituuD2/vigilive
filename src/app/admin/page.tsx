@@ -1,32 +1,30 @@
 
-import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Target, Video, AlertCircle, Activity, Play, CheckCircle2, Zap, Clock } from 'lucide-react'
-import { Separator } from '@/components/ui/separator'
-import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Target, Video, Activity, Zap, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
-  // Real data fetching
-  const { count: targetsCount } = await supabase.from('targets').select('*', { count: 'exact', head: true })
-  const { count: activeTargets } = await supabase.from('targets').select('*', { count: 'exact', head: true }).eq('status', 'active')
-  const { count: recordingsCount } = await supabase.from('recordings').select('*', { count: 'exact', head: true })
-  const { count: activeRecordings } = await supabase.from('recordings').select('*', { count: 'exact', head: true }).eq('status', 'recording')
+  const { count: targetsCount } = await supabase.from('targets').select('*', { count: 'exact', head: true });
+  const { count: liveCount } = await supabase.from('targets').select('*', { count: 'exact', head: true }).eq('is_live', true);
+  const { count: recordingsCount } = await supabase.from('recordings').select('*', { count: 'exact', head: true });
+  const { count: activeRecordings } = await supabase.from('recordings').select('*', { count: 'exact', head: true }).eq('status', 'recording');
   
-  // Recent activity
   const { data: recentLogs } = await supabase
     .from('system_logs')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(5)
+    .limit(5);
 
   const stats = [
-    { title: 'Total Targets', value: targetsCount || 0, sub: `${activeTargets || 0} monitoring active`, icon: Target, color: 'text-primary' },
-    { title: 'Library Size', value: recordingsCount || 0, sub: `${activeRecordings || 0} in progress`, icon: Video, color: 'text-accent' },
-    { title: 'Active Engines', value: activeRecordings ? '1' : '0', sub: 'Cloud workers online', icon: Activity, color: 'text-emerald-500' },
-    { title: 'System Health', value: 'Healthy', sub: '99.9% uptime', icon: Zap, color: 'text-yellow-500' },
-  ]
+    { title: 'Total Targets', value: targetsCount || 0, sub: `${liveCount || 0} currently live`, icon: Target, color: 'text-primary' },
+    { title: 'Library Size', value: recordingsCount || 0, sub: 'Archived captures', icon: Video, color: 'text-accent' },
+    { title: 'Active Jobs', value: activeRecordings || 0, sub: 'Workers busy', icon: Activity, color: 'text-emerald-500' },
+    { title: 'Engine Health', value: 'Nominal', sub: 'Status: Healthy', icon: Zap, color: 'text-yellow-500' },
+  ];
 
   return (
     <div className="space-y-8">
@@ -37,7 +35,7 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title} className="border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden relative">
+          <Card key={stat.title} className="border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
@@ -53,13 +51,13 @@ export default async function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4 border-border/50 bg-card/40">
           <CardHeader>
-            <CardTitle>Stream Health Matrix</CardTitle>
-            <CardDescription>Live telemetry for authorized sources.</CardDescription>
+            <CardTitle>Stream Matrix</CardTitle>
+            <CardDescription>Live telemetry for monitored sources.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground italic border-t border-border/20 mt-2">
+          <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground italic">
             <div className="text-center space-y-2">
               <Activity className="w-12 h-12 mx-auto text-primary opacity-20" />
-              <p>Performance metrics pending live source activity...</p>
+              <p>Polling for live stream events...</p>
             </div>
           </CardContent>
         </Card>
@@ -67,7 +65,7 @@ export default async function DashboardPage() {
         <Card className="lg:col-span-3 border-border/50 bg-card/40">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>System Audit</CardTitle>
+              <CardTitle>Recent Activity</CardTitle>
               <CardDescription>Latest engine events.</CardDescription>
             </div>
             <Link href="/admin/logs">
@@ -115,5 +113,5 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
