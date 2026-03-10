@@ -80,7 +80,6 @@ const logSummarizationFlow = ai.defineFlow(
     outputSchema: LogSummarizationOutputSchema,
   },
   async (input) => {
-    // Genkit's prompt function directly accepts the input object that matches its input schema.
     const { output } = await prompt(input);
     if (!output) {
       throw new Error('Failed to generate log summary.');

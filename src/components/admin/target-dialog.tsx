@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Plus, Loader2, Globe } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { createTarget } from '@/lib/actions/targets';
 import { Button } from '@/components/ui/button';
 import {
@@ -118,10 +117,10 @@ export function TargetDialog() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="tiktok">TikTok (Public Scraper)</SelectItem>
+                      <SelectItem value="tiktok">TikTok</SelectItem>
                       <SelectItem value="youtube">YouTube</SelectItem>
                       <SelectItem value="twitch">Twitch</SelectItem>
-                      <SelectItem value="rtmp">Custom RTMP</SelectItem>
+                      <SelectItem value="rtmp">RTMP Stream</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -134,14 +133,11 @@ export function TargetDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    {form.watch('provider') === 'tiktok' ? 'TikTok @Username' : 'ID / URL'}
+                    {form.watch('provider') === 'tiktok' ? 'TikTok Username (@...)' : 'ID / URL'}
                   </FormLabel>
                   <FormControl>
                     <Input placeholder={form.watch('provider') === 'tiktok' ? '@username' : 'Identifier'} {...field} className="bg-background/50" />
                   </FormControl>
-                  <FormDescription>
-                    {form.watch('provider') === 'tiktok' && 'No official API credentials needed.'}
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

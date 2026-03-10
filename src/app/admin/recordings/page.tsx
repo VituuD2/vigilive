@@ -1,4 +1,3 @@
-
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,13 +24,13 @@ export default async function RecordingsPage() {
     );
   }
 
-  const typedRecordings = (recordings as Recording[]) || [];
+  const typedRecordings = (recordings as unknown as Recording[]) || [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-emerald-500/80';
       case 'recording': return 'bg-primary/80 animate-pulse';
-      case 'pending': return 'bg-yellow-500/80';
+      case 'processing': return 'bg-yellow-500/80';
       case 'failed': return 'bg-destructive/80';
       default: return 'bg-muted/80';
     }
@@ -73,10 +72,10 @@ export default async function RecordingsPage() {
               <CardContent className="p-4 space-y-3">
                 <div className="space-y-1">
                   <h3 className="font-semibold truncate text-white leading-none">
-                    Session {rec.id.split('-')[0]}
+                    {rec.title || `Session ${rec.id.split('-')[0]}`}
                   </h3>
                   <p className="text-xs text-muted-foreground truncate">
-                    Source: <span className="text-accent uppercase font-mono">{rec.targets?.provider}</span> • {rec.targets?.name}
+                    Source: <span className="text-accent uppercase font-mono">{rec.targets?.provider || rec.provider}</span> • {rec.targets?.name || 'Manual Ingest'}
                   </p>
                 </div>
                 
@@ -97,7 +96,7 @@ export default async function RecordingsPage() {
                       View Details
                     </Link>
                   </Button>
-                  {rec.recording_path && (
+                  {rec.storage_path && (
                     <Button variant="secondary" size="icon" className="h-8 w-8">
                       <Download className="h-3 w-3" />
                     </Button>

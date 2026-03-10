@@ -1,4 +1,3 @@
-
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -24,7 +23,7 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
 
   const { data: recording, error } = await supabase
     .from('recordings')
-    .select('*, targets(*)')
+    .select('*, targets(name, provider)')
     .eq('id', id)
     .single();
 
@@ -32,7 +31,7 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
     notFound();
   }
 
-  const rec = recording as Recording;
+  const rec = recording as unknown as Recording;
 
   return (
     <div className="space-y-6">
@@ -62,7 +61,7 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
         </div>
 
         <div className="flex gap-2">
-          {rec.recording_path && (
+          {rec.storage_path && (
             <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
               <Download className="w-4 h-4 mr-2" />
               Download MP4
@@ -75,10 +74,10 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
         {/* Media Preview */}
         <Card className="lg:col-span-2 border-border/50 bg-card/40 overflow-hidden">
           <div className="relative aspect-video bg-black flex items-center justify-center">
-            {rec.recording_path ? (
+            {rec.storage_path ? (
               <div className="text-center space-y-4">
                 <FileVideo className="w-16 h-16 mx-auto text-accent opacity-20" />
-                <p className="text-sm text-muted-foreground">Video player integration required for .mp4 streams</p>
+                <p className="text-sm text-muted-foreground">Video player integration required for storage path streams</p>
               </div>
             ) : (
               <Image 
@@ -100,7 +99,7 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
             <div className="flex justify-between items-center">
               <div className="space-y-1">
                 <h4 className="text-sm font-semibold text-white">Stream Source</h4>
-                <p className="text-xs text-muted-foreground font-mono">{rec.targets?.name || 'Unknown'}</p>
+                <p className="text-xs text-muted-foreground font-mono">{rec.targets?.name || 'Manual Ingest'}</p>
               </div>
               <div className="text-right space-y-1">
                 <h4 className="text-sm font-semibold text-white">Identifier</h4>
@@ -150,9 +149,9 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
                   <HardDrive className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Storage Bucket</p>
+                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Storage Path</p>
                   <p className="text-sm text-white font-mono truncate max-w-[150px]">
-                    {rec.recording_path?.split('/')[0] || 'recordings-default'}
+                    {rec.storage_path || 'Not stored yet'}
                   </p>
                 </div>
               </div>
@@ -162,7 +161,7 @@ export default async function RecordingDetailPage({ params }: { params: { id: st
                 </div>
                 <div>
                   <p className="text-[10px] uppercase text-muted-foreground font-bold">Provider Ref</p>
-                  <p className="text-sm text-white capitalize">{rec.targets?.provider || 'N/A'}</p>
+                  <p className="text-sm text-white capitalize">{rec.targets?.provider || rec.provider}</p>
                 </div>
               </div>
             </CardContent>

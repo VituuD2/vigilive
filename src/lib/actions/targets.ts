@@ -1,49 +1,40 @@
-
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { TikTokScraper } from '@/core/providers/tiktok-scraper';
+import { TargetProvider, TargetStatus } from '@/types/database';
 
 const targetSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  provider: z.enum(['youtube', 'twitch', 'rtmp', 'tiktok']),
+  provider: z.enum(['youtube', 'twitch', 'rtmp', 'tiktok'] as const),
   external_identifier: z.string().min(1, 'Source Identifier is required'),
 });
 
 export async function createTarget(formData: z.infer<typeof targetSchema>) {
   const supabase = await createClient();
-  
-  let roomId = null;
-  let avatarUrl = undefined;
-  let displayName = undefined;
-
-  // For TikTok, we perform an initial scrape to get the RoomID and profile info
-  if (formData.provider === 'tiktok') {
-    const profile = await TikTokScraper.getRoomId(formData.external_identifier);
-    roomId = profile.roomId;
-    avatarUrl = profile.avatar;
-    displayName = profile.nickname;
-  }
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { error } = await supabase
     .from('targets')
     .insert([{
-      ...formData,
-      room_id: roomId,
-      avatar_url: avatarUrl,
-      display_name: displayName,
-      monitoring_status: 'active',
+      name: formData.name,
+      provider: formData.provider as TargetProvider,
+      external_identifier: formData.external_identifier,
+      status: 'active' as TargetStatus,
+      monitor_enabled: true,
+      check_interval_seconds: 300,
+      created_by: user?.id || null,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }]);
 
   if (error) throw new Error(error.message);
   
   await supabase.from('system_logs').insert([{
     level: 'info',
-    message: `Target created: ${formData.external_identifier} via Scraper`,
-    payload: { roomId }
+    message: `Target created: ${formData.external_identifier}`,
+    context: { provider: formData.provider }
   }]);
 
   revalidatePath('/admin/targets');
@@ -59,11 +50,14 @@ export async function deleteTarget(id: string) {
   return { success: true };
 }
 
-export async function updateTargetStatus(id: string, status: 'active' | 'paused') {
+export async function updateTargetStatus(id: string, status: TargetStatus) {
   const supabase = await createClient();
   const { error } = await supabase
     .from('targets')
-    .update({ monitoring_status: status })
+    .update({ 
+      status,
+      updated_at: new Date().toISOString()
+    })
     .eq('id', id);
     
   if (error) throw new Error(error.message);

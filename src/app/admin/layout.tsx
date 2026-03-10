@@ -1,9 +1,9 @@
-
 import { AdminSidebar } from '@/components/admin/sidebar'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Separator } from '@/components/ui/separator'
+import { Profile } from '@/types/database'
 
 export default async function AdminLayout({
   children,
@@ -17,7 +17,7 @@ export default async function AdminLayout({
     redirect('/login')
   }
 
-  // Fetch profile to check role (admin/operator)
+  // Fetch profile to check role
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
@@ -26,7 +26,7 @@ export default async function AdminLayout({
 
   return (
     <SidebarProvider>
-      <AdminSidebar user={user} profile={profile} />
+      <AdminSidebar user={user} profile={profile as unknown as Profile} />
       <SidebarInset className="bg-[#111213]">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/40 px-4">
           <SidebarTrigger className="-ml-1" />

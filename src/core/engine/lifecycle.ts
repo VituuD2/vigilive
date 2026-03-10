@@ -1,4 +1,3 @@
-
 import { createClient } from '@/lib/supabase/server';
 import { RecordingStatus } from '@/types/database';
 
@@ -18,6 +17,7 @@ export async function transitionRecordingStatus(
     .update({ 
       status: newStatus,
       ...updates,
+      updated_at: new Date().toISOString(),
       ...(newStatus === 'completed' || newStatus === 'failed' ? { ended_at: new Date().toISOString() } : {})
     })
     .eq('id', recordingId)
@@ -32,7 +32,7 @@ export async function transitionRecordingStatus(
     message: `Recording ${recordingId} transitioned to ${newStatus}`,
     recording_id: recordingId,
     target_id: data.target_id,
-    payload: updates
+    context: updates
   }]);
 
   return data;
@@ -40,21 +40,19 @@ export async function transitionRecordingStatus(
 
 /**
  * Creates a new recording job if a live stream is detected.
- * Uses a check to prevent duplicate active recordings for the same target.
  */
-export async function initiateRecording(targetId: string, streamUrl: string) {
+export async function initiateRecording(targetId: string, title: string, provider: string) {
   const supabase = await createClient();
 
-  // 1. Check for existing active recordings to prevent duplicates
+  // 1. Check for existing active recordings
   const { data: existing } = await supabase
     .from('recordings')
     .select('id')
     .eq('target_id', targetId)
-    .in('status', ['pending', 'recording'])
+    .in('status', ['processing', 'recording'])
     .single();
 
   if (existing) {
-    console.log(`Recording already in progress for target ${targetId}`);
     return null;
   }
 
@@ -63,9 +61,12 @@ export async function initiateRecording(targetId: string, streamUrl: string) {
     .from('recordings')
     .insert([{
       target_id: targetId,
-      status: 'pending',
-      stream_url: streamUrl,
-      started_at: new Date().toISOString()
+      status: 'processing' as RecordingStatus,
+      title,
+      provider,
+      started_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }])
     .select()
     .single();

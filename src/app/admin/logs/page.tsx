@@ -1,4 +1,3 @@
-
 import { createClient } from '@/lib/supabase/server'
 import { LogSummarizer } from '@/components/admin/log-summarizer'
 import { 
@@ -11,7 +10,8 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { History, ShieldAlert, Info, AlertTriangle } from 'lucide-react'
+import { History, ShieldAlert, Info, AlertTriangle, Bug } from 'lucide-react'
+import { SystemLog, RecordingEvent } from '@/types/database'
 
 export default async function LogsPage() {
   const supabase = await createClient()
@@ -40,15 +40,15 @@ export default async function LogsPage() {
         </div>
         
         <LogSummarizer 
-          systemLogs={systemLogs || []} 
-          recordingEvents={recordingEvents || []} 
+          systemLogs={(systemLogs as unknown as SystemLog[]) || []} 
+          recordingEvents={(recordingEvents as unknown as RecordingEvent[]) || []} 
         />
       </div>
 
       <Card className="border-border/50 bg-card/30">
         <CardHeader>
           <CardTitle>Operational History</CardTitle>
-          <CardDescription>The last 50 system and recording events across all targets.</CardDescription>
+          <CardDescription>The last 50 system events across all targets.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -62,7 +62,7 @@ export default async function LogsPage() {
             </TableHeader>
             <TableBody>
               {systemLogs && systemLogs.length > 0 ? (
-                systemLogs.map((log) => (
+                (systemLogs as unknown as SystemLog[]).map((log) => (
                   <TableRow key={log.id} className="hover:bg-muted/10 transition-colors">
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -70,12 +70,15 @@ export default async function LogsPage() {
                           <ShieldAlert className="w-3 h-3 text-destructive" />
                         ) : log.level === 'warn' ? (
                           <AlertTriangle className="w-3 h-3 text-yellow-500" />
+                        ) : log.level === 'debug' ? (
+                          <Bug className="w-3 h-3 text-blue-500" />
                         ) : (
                           <Info className="w-3 h-3 text-accent" />
                         )}
                         <Badge variant="outline" className={
                           log.level === 'error' ? 'text-destructive border-destructive/30' :
                           log.level === 'warn' ? 'text-yellow-500 border-yellow-500/30' :
+                          log.level === 'debug' ? 'text-blue-500 border-blue-500/30' :
                           'text-accent border-accent/30'
                         }>
                           {log.level}

@@ -1,48 +1,77 @@
-
-export type TargetProvider = 'tiktok' | 'youtube' | 'twitch' | 'custom';
-export type MonitoringStatus = 'active' | 'paused';
-export type RecordingStatus = 'pending' | 'recording' | 'finalizing' | 'completed' | 'failed';
+export type TargetProvider = 'tiktok' | 'youtube' | 'twitch' | 'rtmp';
+export type TargetStatus = 'active' | 'paused' | 'error';
+export type RecordingStatus = 'processing' | 'recording' | 'completed' | 'failed';
+export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+export type UserRole = 'admin' | 'operator' | 'viewer';
 
 export interface Target {
   id: string;
-  created_at: string;
   name: string;
   provider: TargetProvider;
   external_identifier: string;
-  room_id: string | null;
-  monitoring_status: MonitoringStatus;
-  is_live: boolean;
+  status: TargetStatus;
+  monitor_enabled: boolean;
+  check_interval_seconds: number;
   last_checked_at: string | null;
-  avatar_url?: string;
-  display_name?: string;
-  metadata?: Record<string, any>;
+  last_live_at: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface Recording {
   id: string;
   target_id: string;
+  title: string | null;
+  provider: string;
+  external_stream_id: string | null;
   status: RecordingStatus;
-  stream_url: string | null;
-  recording_path: string | null;
-  thumbnail_path: string | null;
   started_at: string;
   ended_at: string | null;
   duration_seconds: number | null;
-  error_message?: string;
-  locked_at: string | null;
+  storage_path: string | null;
+  thumbnail_path: string | null;
+  file_size_bytes: number | null;
+  mime_type: string | null;
+  error_message: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
   targets?: {
     name: string;
     provider: TargetProvider;
-    avatar_url?: string;
-  };
+  } | null;
 }
 
 export interface SystemLog {
   id: string;
-  created_at: string;
-  level: 'info' | 'warn' | 'error';
+  level: LogLevel;
   message: string;
+  context: Record<string, unknown>;
   target_id: string | null;
   recording_id: string | null;
-  payload?: any;
+  user_id: string | null;
+  created_at: string;
+}
+
+export interface RecordingEvent {
+  id: string;
+  recording_id: string | null;
+  target_id: string | null;
+  event_type: string;
+  message: string;
+  context: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }

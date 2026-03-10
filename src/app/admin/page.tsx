@@ -1,16 +1,16 @@
-
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Target as TargetIcon, Video, Activity, Zap, Clock, AlertCircle, Radio } from 'lucide-react';
+import { Target as TargetIcon, Video, Activity, Zap, Clock, AlertCircle, Radio, History } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Target, Recording, SystemLog } from '@/types/database';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
   const { count: targetsCount } = await supabase.from('targets').select('*', { count: 'exact', head: true });
-  const { data: liveTargets } = await supabase.from('targets').select('*').eq('is_live', true);
+  const { count: activeTargets } = await supabase.from('targets').select('*', { count: 'exact', head: true }).eq('status', 'active');
   const { count: recordingsCount } = await supabase.from('recordings').select('*', { count: 'exact', head: true });
   const { count: activeRecordings } = await supabase.from('recordings').select('*', { count: 'exact', head: true }).eq('status', 'recording');
   
@@ -19,6 +19,13 @@ export default async function DashboardPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(8);
+
+  const { data: recentTargets } = await supabase
+    .from('targets')
+    .select('*')
+    .eq('status', 'active')
+    .order('updated_at', { ascending: false })
+    .limit(5);
 
   return (
     <div className="space-y-8">
@@ -33,7 +40,7 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-border/50 bg-card/40 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Monitors</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Targets</CardTitle>
             <TargetIcon className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
@@ -43,12 +50,12 @@ export default async function DashboardPage() {
         </Card>
         <Card className="border-border/50 bg-card/40 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Live Now</CardTitle>
-            <Radio className="h-4 w-4 text-emerald-500 animate-pulse" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Monitors</CardTitle>
+            <Radio className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{liveTargets?.length || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Across all platforms</p>
+            <div className="text-2xl font-bold">{activeTargets || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Polling for live</p>
           </CardContent>
         </Card>
         <Card className="border-border/50 bg-card/40 backdrop-blur-sm">
@@ -77,32 +84,34 @@ export default async function DashboardPage() {
         <div className="lg:col-span-4 space-y-6">
            <Card className="border-border/50 bg-card/40">
             <CardHeader>
-              <CardTitle>Currently Live</CardTitle>
-              <CardDescription>Targets with detected active manifests.</CardDescription>
+              <CardTitle>Recent Active Targets</CardTitle>
+              <CardDescription>Targets currently in active monitoring state.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {liveTargets && liveTargets.length > 0 ? (
-                  liveTargets.map((target) => (
+                {recentTargets && recentTargets.length > 0 ? (
+                  (recentTargets as unknown as Target[]).map((target) => (
                     <div key={target.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
                       <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <div className="w-10 h-10 rounded-full bg-muted overflow-hidden">
-                             {target.avatar_url && <img src={target.avatar_url} alt={target.name} className="w-full h-full object-cover" />}
-                          </div>
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#111213]" />
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center border border-border/50">
+                          <TargetIcon className="w-5 h-5 text-accent opacity-50" />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-white">{target.display_name || target.name}</p>
+                          <p className="text-sm font-bold text-white">{target.name}</p>
                           <p className="text-[10px] text-muted-foreground uppercase font-mono">{target.provider} • {target.external_identifier}</p>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">RECORDING</Badge>
+                      <div className="text-right">
+                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase text-[10px]">Active</Badge>
+                        <p className="text-[9px] text-muted-foreground mt-1">
+                          Last checked: {target.last_checked_at ? new Date(target.last_checked_at).toLocaleTimeString() : 'Never'}
+                        </p>
+                      </div>
                     </div>
                   ))
                 ) : (
                   <div className="py-12 text-center text-muted-foreground italic text-sm">
-                    No active streams detected at this moment.
+                    No active targets detected.
                   </div>
                 )}
               </div>
@@ -114,16 +123,16 @@ export default async function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>System Activity</CardTitle>
-              <CardDescription>Engine event log.</CardDescription>
+              <CardDescription>Latest engine events.</CardDescription>
             </div>
             <Link href="/admin/logs">
-              <Clock className="w-4 h-4 text-muted-foreground hover:text-accent transition-colors" />
+              <History className="w-4 h-4 text-muted-foreground hover:text-accent transition-colors" />
             </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {recentLogs && recentLogs.length > 0 ? (
-                recentLogs.map((log) => (
+                (recentLogs as unknown as SystemLog[]).map((log) => (
                   <div key={log.id} className="flex gap-4 group">
                     <div className="mt-1">
                       {log.level === 'error' ? (

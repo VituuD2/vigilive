@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react'
@@ -14,10 +13,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { SystemLog, RecordingEvent } from '@/types/database'
 
 interface LogSummarizerProps {
-  systemLogs: any[]
-  recordingEvents: any[]
+  systemLogs: SystemLog[]
+  recordingEvents: RecordingEvent[]
 }
 
 export function LogSummarizer({ systemLogs, recordingEvents }: LogSummarizerProps) {

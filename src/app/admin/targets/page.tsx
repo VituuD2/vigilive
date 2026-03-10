@@ -1,13 +1,11 @@
-
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, AlertCircle, User } from 'lucide-react';
+import { Search, Filter, AlertCircle, User, Radio, Youtube, Twitch, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { TargetDialog } from '@/components/admin/target-dialog';
 import { TargetActionMenu } from '@/components/admin/target-action-menu';
 import { Target } from '@/types/database';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -37,6 +35,15 @@ export default async function TargetsPage() {
   }
 
   const typedTargets = (targets as Target[]) || [];
+
+  const getProviderIcon = (provider: string) => {
+    switch (provider) {
+      case 'youtube': return <Youtube className="h-4 w-4 text-red-500" />;
+      case 'twitch': return <Twitch className="h-4 w-4 text-purple-500" />;
+      case 'tiktok': return <Radio className="h-4 w-4 text-white" />;
+      default: return <Globe className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -69,7 +76,7 @@ export default async function TargetsPage() {
               <TableHead>Provider</TableHead>
               <TableHead>Account / ID</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Last Check</TableHead>
+              <TableHead>Last Live</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -79,14 +86,13 @@ export default async function TargetsPage() {
                 <TableRow key={target.id} className="hover:bg-muted/10 transition-colors">
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8 border border-border/50">
-                        <AvatarImage src={target.avatar_url} />
-                        <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                      </Avatar>
+                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center border border-border/50">
+                        {getProviderIcon(target.provider)}
+                      </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-semibold">{target.display_name || target.name}</span>
+                        <span className="text-sm font-semibold">{target.name}</span>
                         <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">
-                          {target.provider} • {target.id.split('-')[0]}
+                          {target.id.split('-')[0]}
                         </span>
                       </div>
                     </div>
@@ -97,21 +103,19 @@ export default async function TargetsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
-                    {target.provider === 'tiktok' ? `@${target.external_identifier}` : target.external_identifier}
+                    {target.external_identifier}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className={`h-2 w-2 rounded-full ${
                         target.status === 'active' ? 'bg-emerald-500 animate-pulse' : 
-                        target.status === 'error' ? 'bg-destructive' : 
-                        target.status === 'paused' ? 'bg-yellow-500' : 
-                        target.status === 'pending_auth' ? 'bg-accent' : 'bg-muted-foreground'
+                        target.status === 'error' ? 'bg-destructive' : 'bg-yellow-500'
                       }`} />
-                      <span className="capitalize text-sm">{target.status.replace('_', ' ')}</span>
+                      <span className="capitalize text-sm">{target.status}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {target.last_checked_at ? new Date(target.last_checked_at).toLocaleString() : 'Never'}
+                    {target.last_live_at ? new Date(target.last_live_at).toLocaleString() : 'Never'}
                   </TableCell>
                   <TableCell className="text-right">
                     <TargetActionMenu target={target} />
