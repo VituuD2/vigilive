@@ -1,65 +1,38 @@
 
-# Vigilive Admin MVP
+# Vigilive Admin: Operational Control Center
 
-Professional cloud recording and monitoring administrative platform foundation. Built for scale, security, and operational clarity.
+Autonomous stream archiving and cloud recording platform. Monitors authorized live sources (TikTok, YouTube, Twitch) via public scraping and manages a distributed recording pipeline.
 
-## 🚀 Stack
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript (Strict)
-- **Styling**: Tailwind CSS + shadcn/ui
-- **Backend**: Supabase (PostgreSQL, Auth, Storage)
-- **Deployment**: Vercel
-- **AI**: Google Gemini (via Genkit)
+## 🚀 Core Architecture
+
+- **Web Control Plane (Next.js/Supabase)**: Manages targets, monitors status via public scraping, handles the recording state machine, and provides a library for past recordings.
+- **Data Plane (External Workers)**: Decoupled recorders (FFmpeg/yt-dlp) that poll the API for pending tasks, execute the recording, and upload files to Supabase Storage.
 
 ## 📁 Project Structure
 ```text
 src/
-  ai/           # GenAI flows and configuration
-  app/          # Routes (Auth and Protected Admin)
-  components/   # Modular UI components
-  core/         # Domain interfaces and business logic
-  hooks/        # Custom React hooks
-  lib/          # Infrastructure utilities (Supabase, etc.)
-  types/        # Global TypeScript definitions
-supabase/       # SQL migrations and schema definitions
+  ai/           # GenAI log summarization
+  app/          # Routes (Auth, Admin, API)
+  core/         
+    providers/  # Scraper logic for TikTok/YouTube/Twitch
+    engine/     # Recording state machine
+  lib/          # Supabase & Shared Utilities
+  types/        # Strict Database Definitions
 ```
 
 ## 🛠️ Setup Instructions
 
 ### 1. Supabase Setup
-- Create a new project on [Supabase](https://supabase.com).
-- Open the **SQL Editor** in your Supabase Dashboard.
-- Run the contents of `supabase/migrations/20240101000000_initial_schema.sql` to create tables.
-- **CRITICAL**: Run the contents of `supabase/migrations/20240101000001_fix_permissions.sql` to fix schema access and RLS policies.
-- In **Authentication > Providers**, ensure Email/Password is enabled.
-- In **Storage**, create three buckets: `recordings`, `thumbnails`, `exports`. Set them as private.
+- Run the SQL migrations provided in the "Master Prompt" response to set up `targets`, `recordings`, and `system_logs`.
+- In **Storage**, ensure buckets `recordings` and `thumbnails` are created.
 
 ### 2. Environment Variables
-In Vercel or your local `.env`, set the following:
 - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anonymous Key.
 - `GEMINI_API_KEY`: For AI Log Summarization.
-- `TIKTOK_CLIENT_ID`: (Optional) For official TikTok integration.
-- `TIKTOK_CLIENT_SECRET`: (Optional) For official TikTok integration.
 
-### 3. Local Development
-```bash
-npm install
-npm run dev -p 9002
-```
-
-### 4. Git Synchronization
-To stage, commit, and push changes in a single command:
-```bash
-git add . && git commit -m "update permissions and readme" && git push
-```
-
-## 🔒 Troubleshooting: "Permission Denied for Schema Public"
-If you see this error, it means the database user doesn't have the right to read the `public` schema.
-1. Go to your Supabase Dashboard -> **SQL Editor**.
-2. Create a "New Query".
-3. Paste and run the code from `supabase/migrations/20240101000001_fix_permissions.sql`.
-4. Refresh your application.
+### 3. Worker Integration
+External workers should poll `GET /api/worker/tasks` to find the next available recording job. Once finished, they should `PATCH /api/worker/tasks` with the `recording_path` and `duration_seconds`.
 
 ---
-**Vigilive Operational Intelligence** | [Support](mailto:tech@vigilive.com)
+**Vigilive Cloud Core** | Authorized Access Only.
