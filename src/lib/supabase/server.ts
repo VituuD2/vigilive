@@ -1,3 +1,4 @@
+
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -7,18 +8,21 @@ export async function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables are missing on server.')
-    return createServerClient(
-      supabaseUrl || 'https://placeholder.supabase.co',
-      supabaseAnonKey || 'placeholder',
-      {
-        cookies: {
-          get(name: string) { return '' },
-          set(name: string, value: string, options: CookieOptions) {},
-          remove(name: string, options: CookieOptions) {},
-        }
-      }
-    )
+    // Return a minimal mock interface to prevent immediate crashes in server components
+    return {
+      auth: { 
+        getUser: async () => ({ data: { user: null }, error: null }),
+        getSession: async () => ({ data: { session: null }, error: null }),
+      },
+      from: () => ({ 
+        select: () => ({ 
+          order: () => ({ 
+            limit: () => ({ data: [], error: null }) 
+          }), 
+          eq: () => ({ data: [], error: null }) 
+        }) 
+      }),
+    } as any
   }
 
   return createServerClient(
@@ -33,14 +37,14 @@ export async function createClient() {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            // The `set` method was called from a Server Component.
+            // Cookie setting might fail in certain server environments, usually handled by middleware
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
           } catch (error) {
-            // The `remove` method was called from a Server Component.
+            // Cookie removal might fail in certain server environments
           }
         },
       },
