@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-dashboard",
+      "description": "Abstract technology background for dashboard header",
+      "imageUrl": "https://picsum.photos/seed/vigilive1/1200/400",
+      "imageHint": "technology abstract"
+    },
+    {
+      "id": "thumbnail-default",
+      "description": "Default stream thumbnail placeholder",
+      "imageUrl": "https://picsum.photos/seed/stream1/640/360",
+      "imageHint": "video stream"
+    }
+  ]
 }
