@@ -28,13 +28,17 @@ supabase/       # SQL migrations and schema definitions
 
 ### 1. Supabase Setup
 - Create a new project on [Supabase](https://supabase.com).
-- Open the **SQL Editor** and run the contents of `supabase/migrations/20240101000000_initial_schema.sql`.
+- Open the **SQL Editor** in your Supabase Dashboard.
+- Run the contents of `supabase/migrations/20240101000000_initial_schema.sql` (if available) to create tables.
+- **CRITICAL**: Run the contents of `supabase/migrations/20240101000001_fix_permissions.sql` to fix schema access and RLS policies.
 - In **Authentication > Providers**, ensure Email/Password is enabled.
 - In **Storage**, create three buckets: `recordings`, `thumbnails`, `exports`. Set them as private.
 
 ### 2. Environment Variables
-- Copy `.env.example` to `.env.local`.
-- Fill in your Supabase URL, Anon Key, Service Role Key (Server only), and Gemini API Key.
+- In Vercel or your local `.env.local`, set the following:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `GEMINI_API_KEY`
 
 ### 3. Local Development
 ```bash
@@ -45,22 +49,15 @@ npm run dev -p 9002
 ### 4. Git Synchronization
 To stage, commit, and push changes in a single command:
 ```bash
-git add . && git commit -m "your description" && git push
+git add . && git commit -m "update permissions and readme" && git push
 ```
 
-### 5. Deployment (Vercel)
-- Push code to GitHub.
-- Connect your repo to Vercel.
-- Add the environment variables from `.env.local` to the Vercel project settings.
-- Deploy.
-
-## 🔒 Security Measures
-- **Supabase Auth**: JWT-based session management.
-- **Middleware Protection**: All `/admin` routes are server-side protected.
-- **Row Level Security (RLS)**: Data access restricted at the database level.
-
-## 🤖 GenAI Features
-The "AI Analysis" tool in the Diagnostics page uses Gemini to summarize complex log sequences, highlighting key events and identifying potential anomalies for operators.
+## 🔒 Troubleshooting: "Permission Denied for Schema Public"
+If you see this error, it means the database user doesn't have the right to read the `public` schema.
+1. Go to your Supabase Dashboard -> **SQL Editor**.
+2. Create a "New Query".
+3. Paste and run the code from `supabase/migrations/20240101000001_fix_permissions.sql`.
+4. Refresh your application.
 
 ---
 **Vigilive Operational Intelligence** | [Support](mailto:tech@vigilive.com)
