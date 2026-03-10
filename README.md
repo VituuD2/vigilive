@@ -42,14 +42,10 @@ npm install
 npm run dev -p 9002
 ```
 
-### 4. Git Initialization
+### 4. Git Synchronization
+To stage, commit, and push changes in a single command:
 ```bash
-git init
-git add .
-git commit -m "feat: initial vigilive admin mvp structure"
-git branch -M main
-# git remote add origin <your-github-repo-url>
-# git push -u origin main
+git add . && git commit -m "your description" && git push
 ```
 
 ### 5. Deployment (Vercel)
@@ -62,7 +58,6 @@ git branch -M main
 - **Supabase Auth**: JWT-based session management.
 - **Middleware Protection**: All `/admin` routes are server-side protected.
 - **Row Level Security (RLS)**: Data access restricted at the database level.
-- **Environment Isolation**: Service Role keys are never exposed to the client.
 
 ## 🤖 GenAI Features
 The "AI Analysis" tool in the Diagnostics page uses Gemini to summarize complex log sequences, highlighting key events and identifying potential anomalies for operators.
