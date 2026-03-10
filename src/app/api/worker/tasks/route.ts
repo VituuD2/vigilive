@@ -55,7 +55,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Log the event
+  // Log the event using 'context' as per schema
   await supabase.from('system_logs').insert([{
     level: status === 'failed' ? 'error' : 'info',
     message: `Worker updated recording ${recordingId} to ${status}`,

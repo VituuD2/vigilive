@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { TargetProvider, TargetStatus } from '@/types/database';
+import { TargetStatus } from '@/types/database';
 
 const targetSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -19,11 +19,11 @@ export async function createTarget(formData: z.infer<typeof targetSchema>) {
     .from('targets')
     .insert([{
       name: formData.name,
-      provider: formData.provider as TargetProvider,
+      provider: formData.provider,
       external_identifier: formData.external_identifier,
-      status: 'active' as TargetStatus,
-      monitor_enabled: true,
-      check_interval_seconds: 300,
+      status: 'paused' as TargetStatus, // Matching schema default
+      monitor_enabled: false, // Matching schema default
+      check_interval_seconds: 60, // Matching schema default
       created_by: user?.id || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

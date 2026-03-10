@@ -1,10 +1,6 @@
 'use server';
 /**
  * @fileOverview A Genkit flow for summarizing system and recording event logs using AI.
- *
- * - summarizeLogs - A function that handles the log summarization process.
- * - LogSummarizationInput - The input type for the summarizeLogs function.
- * - LogSummarizationOutput - The return type for the summarizeLogs function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -12,9 +8,9 @@ import { z } from 'genkit';
 
 const SystemLogEntrySchema = z.object({
   id: z.string().describe('Unique identifier for the system log entry.'),
-  level: z.string().describe('Severity level of the log (e.g., INFO, WARN, ERROR).'),
+  level: z.string().describe('Severity level of the log (e.g., info, warn, error, debug).'),
   message: z.string().describe('The main message of the system log entry.'),
-  context: z.any().optional().describe('Optional JSON object providing additional context for the log.'),
+  context: z.record(z.any()).optional().describe('JSON object providing additional context for the log.'),
   created_at: z.string().describe('Timestamp when the log was created (ISO format).'),
 });
 
@@ -22,7 +18,7 @@ const RecordingEventEntrySchema = z.object({
   id: z.string().describe('Unique identifier for the recording event entry.'),
   event_type: z.string().describe('Type of recording event (e.g., START, STOP, ERROR, LIVE_DETECTED).'),
   message: z.string().describe('The main message describing the recording event.'),
-  context: z.any().optional().describe('Optional JSON object providing additional context for the event.'),
+  context: z.record(z.any()).optional().describe('JSON object providing additional context for the event.'),
   created_at: z.string().describe('Timestamp when the event occurred (ISO format).'),
 });
 

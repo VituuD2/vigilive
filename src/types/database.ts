@@ -7,7 +7,7 @@ export type UserRole = 'admin' | 'operator' | 'viewer';
 export interface Target {
   id: string;
   name: string;
-  provider: TargetProvider;
+  provider: string; // Dynamic string from DB
   external_identifier: string;
   status: TargetStatus;
   monitor_enabled: boolean;
@@ -41,7 +41,7 @@ export interface Recording {
   updated_at: string;
   targets?: {
     name: string;
-    provider: TargetProvider;
+    provider: string;
   } | null;
 }
 
