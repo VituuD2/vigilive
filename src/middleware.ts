@@ -1,4 +1,3 @@
-
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -12,15 +11,17 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // If environment variables are missing, bypass verification to avoid initialization crash.
-  if (!supabaseUrl || !supabaseAnonKey) {
+  const isUrlValid = (url?: string) => url && (url.startsWith('http://') || url.startsWith('https://'));
+
+  // If environment variables are missing or invalid, bypass verification to avoid initialization crash.
+  if (!isUrlValid(supabaseUrl) || !supabaseAnonKey) {
     return response
   }
 
   try {
     const supabase = createServerClient(
-      supabaseUrl,
-      supabaseAnonKey,
+      supabaseUrl!,
+      supabaseAnonKey!,
       {
         cookies: {
           get(name: string) {
@@ -76,8 +77,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin', request.url))
     }
   } catch (e) {
-    // If client creation fails due to internal SSR checks, fallback to letting the request through
-    // which allows the app to render the login/error state.
     console.error('Middleware Supabase Initialization Error:', e)
   }
 

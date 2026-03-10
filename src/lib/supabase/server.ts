@@ -1,4 +1,3 @@
-
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -7,27 +6,36 @@ export async function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  // Robust check: Ensure variables exist AND the URL is valid
+  const isUrlValid = (url?: string) => url && (url.startsWith('http://') || url.startsWith('https://'));
+
+  if (!isUrlValid(supabaseUrl) || !supabaseAnonKey) {
     // Return a minimal mock interface to prevent immediate crashes in server components
     return {
       auth: { 
         getUser: async () => ({ data: { user: null }, error: null }),
         getSession: async () => ({ data: { session: null }, error: null }),
+        signInWithPassword: async () => ({ data: { user: null, session: null }, error: { message: 'Supabase URL not configured.' } }),
+        signOut: async () => ({ error: null }),
       },
       from: () => ({ 
         select: () => ({ 
           order: () => ({ 
             limit: () => ({ data: [], error: null }) 
           }), 
-          eq: () => ({ data: [], error: null }) 
-        }) 
+          eq: () => ({ data: [], error: null }),
+          single: () => ({ data: null, error: null })
+        }),
+        insert: () => ({ select: () => ({ single: () => ({ data: null, error: null }) }) }),
+        update: () => ({ eq: () => ({ select: () => ({ single: () => ({ data: null, error: null }) }) }) }),
+        delete: () => ({ eq: () => ({ error: null }) }),
       }),
     } as any
   }
 
   return createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
+    supabaseUrl!,
+    supabaseAnonKey!,
     {
       cookies: {
         get(name: string) {

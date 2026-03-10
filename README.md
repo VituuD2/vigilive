@@ -29,16 +29,18 @@ supabase/       # SQL migrations and schema definitions
 ### 1. Supabase Setup
 - Create a new project on [Supabase](https://supabase.com).
 - Open the **SQL Editor** in your Supabase Dashboard.
-- Run the contents of `supabase/migrations/20240101000000_initial_schema.sql` (if available) to create tables.
+- Run the contents of `supabase/migrations/20240101000000_initial_schema.sql` to create tables.
 - **CRITICAL**: Run the contents of `supabase/migrations/20240101000001_fix_permissions.sql` to fix schema access and RLS policies.
 - In **Authentication > Providers**, ensure Email/Password is enabled.
 - In **Storage**, create three buckets: `recordings`, `thumbnails`, `exports`. Set them as private.
 
 ### 2. Environment Variables
-- In Vercel or your local `.env.local`, set the following:
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - `GEMINI_API_KEY`
+In Vercel or your local `.env`, set the following:
+- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anonymous Key.
+- `GEMINI_API_KEY`: For AI Log Summarization.
+- `TIKTOK_CLIENT_ID`: (Optional) For official TikTok integration.
+- `TIKTOK_CLIENT_SECRET`: (Optional) For official TikTok integration.
 
 ### 3. Local Development
 ```bash
