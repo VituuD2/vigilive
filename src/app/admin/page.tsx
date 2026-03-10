@@ -1,8 +1,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Target, Video, AlertCircle, Activity, Play, CheckCircle2, Zap } from 'lucide-react'
+import { Target, Video, AlertCircle, Activity, Play, CheckCircle2, Zap, Clock } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
+import Link from 'next/link'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -21,17 +22,17 @@ export default async function DashboardPage() {
     .limit(5)
 
   const stats = [
-    { title: 'Total Targets', value: targetsCount || 0, sub: `${activeTargets || 0} active now`, icon: Target, color: 'text-primary' },
-    { title: 'Total Recordings', value: recordingsCount || 0, sub: `${activeRecordings || 0} in progress`, icon: Video, color: 'text-accent' },
-    { title: 'System Uptime', value: '99.9%', sub: 'Last 30 days', icon: Activity, color: 'text-emerald-500' },
-    { title: 'Alerts', value: 0, sub: 'No critical issues', icon: AlertCircle, color: 'text-muted-foreground' },
+    { title: 'Total Targets', value: targetsCount || 0, sub: `${activeTargets || 0} monitoring active`, icon: Target, color: 'text-primary' },
+    { title: 'Library Size', value: recordingsCount || 0, sub: `${activeRecordings || 0} in progress`, icon: Video, color: 'text-accent' },
+    { title: 'Active Engines', value: activeRecordings ? '1' : '0', sub: 'Cloud workers online', icon: Activity, color: 'text-emerald-500' },
+    { title: 'System Health', value: 'Healthy', sub: '99.9% uptime', icon: Zap, color: 'text-yellow-500' },
   ]
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard Overview</h1>
-        <p className="text-muted-foreground">Real-time status of your monitoring and recording infrastructure.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Operational Dashboard</h1>
+        <p className="text-muted-foreground">Monitoring and recording infrastructure status.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -45,7 +46,6 @@ export default async function DashboardPage() {
               <div className="text-2xl font-bold">{stat.value}</div>
               <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
             </CardContent>
-            <div className={`absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-current opacity-20 ${stat.color}`} />
           </Card>
         ))}
       </div>
@@ -53,21 +53,26 @@ export default async function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4 border-border/50 bg-card/40">
           <CardHeader>
-            <CardTitle>Platform Status</CardTitle>
-            <CardDescription>Engine performance and resource utilization.</CardDescription>
+            <CardTitle>Stream Health Matrix</CardTitle>
+            <CardDescription>Live telemetry for authorized sources.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground italic border-t border-border/20 mt-2">
             <div className="text-center space-y-2">
-              <Zap className="w-12 h-12 mx-auto text-accent opacity-20" />
-              <p>Performance telemetry data arriving...</p>
+              <Activity className="w-12 h-12 mx-auto text-primary opacity-20" />
+              <p>Performance metrics pending live source activity...</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-3 border-border/50 bg-card/40">
-          <CardHeader>
-            <CardTitle>Recent System Logs</CardTitle>
-            <CardDescription>Latest operational events captured.</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>System Audit</CardTitle>
+              <CardDescription>Latest engine events.</CardDescription>
+            </div>
+            <Link href="/admin/logs">
+              <Clock className="w-4 h-4 text-muted-foreground hover:text-accent transition-colors" />
+            </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -95,13 +100,16 @@ export default async function DashboardPage() {
                 ))
               ) : (
                 <div className="text-center py-8 text-muted-foreground text-sm italic">
-                  No recent logs found.
+                  No recent operational events.
                 </div>
               )}
               <Separator className="my-4 bg-border/40" />
-              <button className="w-full text-xs text-primary hover:text-primary/80 transition-colors font-medium text-center">
-                View all system logs
-              </button>
+              <Link 
+                href="/admin/logs" 
+                className="block w-full text-xs text-primary hover:text-primary/80 transition-colors font-medium text-center"
+              >
+                View Full Audit Trail
+              </Link>
             </div>
           </CardContent>
         </Card>

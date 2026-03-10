@@ -1,16 +1,16 @@
 
 export type TargetStatus = 'active' | 'paused' | 'error' | 'idle' | 'pending_auth';
-export type RecordingStatus = 'recording' | 'completed' | 'failed';
+export type RecordingStatus = 'recording' | 'completed' | 'failed' | 'finalizing';
 
 export interface Target {
   id: string;
   created_at: string;
   name: string;
   provider: 'youtube' | 'twitch' | 'rtmp' | 'tiktok';
-  external_identifier: string; // The username or channel ID
-  platform_user_id?: string;    // Unique ID from the provider
-  display_name?: string;       // Friendly name from the provider
-  avatar_url?: string;         // Profile picture URL
+  external_identifier: string; // The username, channel ID, or RTMP URL
+  platform_user_id?: string;    
+  display_name?: string;       
+  avatar_url?: string;         
   status: TargetStatus;
   last_checked_at: string | null;
   metadata?: Record<string, any>;
@@ -26,10 +26,12 @@ export interface Recording {
   status: RecordingStatus;
   thumbnail_path: string | null;
   recording_path: string | null;
+  error_message?: string;
   targets?: {
     name: string;
     avatar_url?: string;
     display_name?: string;
+    provider: string;
   };
 }
 
@@ -40,5 +42,14 @@ export interface SystemLog {
   message: string;
   target_id: string | null;
   recording_id: string | null;
+  context?: any;
+}
+
+export interface RecordingEvent {
+  id: string;
+  recording_id: string;
+  event_type: 'start' | 'stop' | 'error' | 'live_detected' | 'storage_finalized';
+  message: string;
+  created_at: string;
   context?: any;
 }

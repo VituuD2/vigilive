@@ -10,7 +10,8 @@ import {
   LogOut,
   ShieldCheck,
   Zap,
-  Activity
+  Activity,
+  FileText
 } from 'lucide-react'
 import {
   Sidebar,
@@ -28,10 +29,9 @@ import Link from 'next/link'
 
 const NAV_ITEMS = [
   { title: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
-  { title: 'Targets', icon: Target, href: '/admin/targets' },
-  { title: 'Recordings', icon: Video, href: '/admin/recordings' },
+  { title: 'Monitoring Targets', icon: Target, href: '/admin/targets' },
+  { title: 'Capture Library', icon: Video, href: '/admin/recordings' },
   { title: 'System Logs', icon: History, href: '/admin/logs' },
-  { title: 'Activity Feed', icon: Activity, href: '/admin/activity' },
 ]
 
 export function AdminSidebar({ user, profile }: { user: any, profile: any }) {
@@ -49,12 +49,12 @@ export function AdminSidebar({ user, profile }: { user: any, profile: any }) {
     <Sidebar collapsible="icon">
       <SidebarHeader className="h-16 flex items-center px-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20">
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="font-bold text-sm leading-tight">Vigilive Admin</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Enterprise v1.0</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Cloud Core</span>
           </div>
         </div>
       </SidebarHeader>
@@ -90,7 +90,7 @@ export function AdminSidebar({ user, profile }: { user: any, profile: any }) {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-medium truncate">{profile?.full_name || user.email.split('@')[0]}</span>
-                <span className="text-[10px] text-muted-foreground truncate capitalize">{profile?.role || 'viewer'}</span>
+                <span className="text-[10px] text-muted-foreground truncate capitalize">{profile?.role || 'operator'}</span>
               </div>
             </div>
           </SidebarMenuItem>
