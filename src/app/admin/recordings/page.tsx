@@ -1,4 +1,3 @@
-
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +29,7 @@ export default async function RecordingsPage() {
                   src={rec.thumbnail_path || `https://picsum.photos/seed/${rec.id}/640/360`}
                   alt={rec.title || 'Recording thumbnail'}
                   fill
+                  data-ai-hint="video stream"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute top-2 right-2">
