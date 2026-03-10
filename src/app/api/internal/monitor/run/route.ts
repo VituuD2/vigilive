@@ -32,3 +32,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+export async function GET() {
+  return NextResponse.json({ 
+    status: "Operacional", 
+    message: "A rota existe! Agora use POST para rodar o monitor." 
+  });
+}
