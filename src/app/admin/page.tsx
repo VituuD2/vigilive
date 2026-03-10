@@ -1,7 +1,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Target, Video, AlertCircle, Activity, Play, CheckCircle2 } from 'lucide-react'
+import { Target, Video, AlertCircle, Activity, Play, CheckCircle2, Zap } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 
 export default async function DashboardPage() {
