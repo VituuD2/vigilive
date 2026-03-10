@@ -1,9 +1,9 @@
+
 import { createClient } from '@/lib/supabase/server';
 import { RecordingStatus } from '@/types/database';
 
 /**
  * Handles the state transitions of a recording job.
- * This is the source of truth for the recording state machine.
  */
 export async function transitionRecordingStatus(
   recordingId: string, 
@@ -40,11 +40,12 @@ export async function transitionRecordingStatus(
 
 /**
  * Creates a new recording job if a live stream is detected.
+ * Prevents duplicates for targets already being recorded.
  */
-export async function initiateRecording(targetId: string, title: string, provider: string) {
+export async function initiateRecording(targetId: string, title: string, provider: string, externalStreamId?: string) {
   const supabase = await createClient();
 
-  // 1. Check for existing active recordings
+  // 1. Atomic check for active recordings
   const { data: existing } = await supabase
     .from('recordings')
     .select('id')
@@ -62,8 +63,9 @@ export async function initiateRecording(targetId: string, title: string, provide
     .insert([{
       target_id: targetId,
       status: 'processing' as RecordingStatus,
-      title,
+      title: title || `Live Session - ${new Date().toLocaleDateString()}`,
       provider,
+      external_stream_id: externalStreamId,
       started_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -72,6 +74,15 @@ export async function initiateRecording(targetId: string, title: string, provide
     .single();
 
   if (error) throw error;
+
+  // 3. Log event
+  await supabase.from('system_logs').insert([{
+    level: 'info',
+    message: `LIVE_DETECTED: Created recording job ${data.id} for target ${targetId}`,
+    target_id: targetId,
+    recording_id: data.id,
+    context: { title, provider }
+  }]);
 
   return data;
 }

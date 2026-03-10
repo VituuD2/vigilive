@@ -4,6 +4,7 @@ import { TargetProvider } from '@/types/database';
 export interface StreamStatus {
   isLive: boolean;
   streamUrl?: string;
+  title?: string;
   metadata?: Record<string, any>;
 }
 
@@ -19,12 +20,4 @@ export abstract class LiveProvider {
    * Checks if the target is currently live
    */
   abstract checkStatus(identifier: string): Promise<StreamStatus>;
-
-  /**
-   * Normalizes display name and avatar if available
-   */
-  abstract getProfileInfo(identifier: string): Promise<{
-    displayName: string;
-    avatarUrl?: string;
-  }>;
 }
