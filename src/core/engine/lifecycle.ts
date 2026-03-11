@@ -39,6 +39,7 @@ export async function transitionRecordingStatus(
 
 /**
  * Terminates an active recording job.
+ * This will be detected by the worker during status polling.
  */
 export async function stopRecording(recordingId: string, userId?: string) {
   const supabase = createAdminClient();
@@ -70,7 +71,7 @@ export async function stopRecording(recordingId: string, userId?: string) {
 
   await supabase.from('system_logs').insert([{
     level: 'info',
-    message: `MANUAL_STOP: Recording ${recordingId} stopped by operator`,
+    message: `MANUAL_STOP: Stop signal sent to worker for recording ${recordingId}`,
     recording_id: recordingId,
     target_id: recording.target_id,
     user_id: userId,
@@ -90,13 +91,13 @@ export async function initiateRecording(targetId: string, title: string, provide
   // 1. Atomic check for active recordings
   const { data: existing } = await supabase
     .from('recordings')
-    .select('id')
+    .select('id, status')
     .eq('target_id', targetId)
     .in('status', ['processing', 'recording'])
     .maybeSingle();
 
   if (existing) {
-    return null;
+    return existing; // Return existing job so worker can reuse it
   }
 
   // 2. Create the processing recording
@@ -116,15 +117,6 @@ export async function initiateRecording(targetId: string, title: string, provide
     .single();
 
   if (error) throw error;
-
-  // Log new job creation
-  await supabase.from('system_logs').insert([{
-    level: 'info',
-    message: `ENGINE: New recording job initialized for target ${targetId}`,
-    target_id: targetId,
-    recording_id: data.id,
-    context: { source: 'engine_lifecycle', stream_id: externalStreamId }
-  }]);
 
   return data;
 }

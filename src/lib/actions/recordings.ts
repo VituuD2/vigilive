@@ -29,8 +29,11 @@ export async function manualEnqueueRecording(targetId: string, title?: string, s
     streamUrl
   );
 
-  if (!recording) {
-    throw new Error('An active recording job already exists for this target.');
+  // Note: initiateRecording returns existing job if it exists.
+  // We check if it was already in a recording/processing state.
+  if (recording && (recording.status === 'recording' || (recording as any).created_at !== recording.updated_at)) {
+    // If it already existed and wasn't just created now (simplified check)
+    // we might want to warn the user, but for now we just return it.
   }
 
   await supabase.from('system_logs').insert([{
@@ -48,6 +51,7 @@ export async function manualEnqueueRecording(targetId: string, title?: string, s
 
 /**
  * Stops an active recording.
+ * Sets the status to 'completed', which the local worker polls for.
  */
 export async function stopActiveRecording(recordingId: string) {
   const supabase = await createClient();
