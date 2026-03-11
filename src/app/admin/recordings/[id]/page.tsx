@@ -11,11 +11,14 @@ import {
   Target as TargetIcon, 
   HardDrive,
   FileVideo,
-  AlertTriangle
+  Info,
+  Database
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Recording } from '@/types/database';
+import { getSignedUrlForRecording } from '@/lib/actions/recordings';
+import { RecordingPlayer } from '@/components/admin/recording-player';
+import { Separator } from '@/components/ui/separator';
 
 export default async function RecordingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,11 +35,26 @@ export default async function RecordingDetailPage({ params }: { params: Promise<
   }
 
   const rec = recording as unknown as Recording;
+  
+  let signedUrl: string | null = null;
+  try {
+    if (rec.storage_path) {
+      signedUrl = await getSignedUrlForRecording(rec.id);
+    }
+  } catch (e) {
+    console.error('Signed URL generation failed:', e);
+  }
+
+  const formatSize = (bytes: number | null) => {
+    if (!bytes) return 'N/A';
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(2)} MB`;
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Button asChild variant="ghost" size="sm" className="h-8">
+        <Button asChild variant="ghost" size="sm" className="h-8 text-muted-foreground hover:text-white transition-colors">
           <Link href="/admin/recordings" className="flex items-center gap-2">
             <ChevronLeft className="w-4 h-4" />
             Back to Library
@@ -44,86 +62,93 @@ export default async function RecordingDetailPage({ params }: { params: Promise<
         </Button>
       </div>
 
-      <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
-        <div className="space-y-1 flex-1">
+      <div className="flex flex-col lg:flex-row justify-between items-start gap-6 bg-card/20 p-6 rounded-2xl border border-border/40 backdrop-blur-sm">
+        <div className="space-y-2 flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight text-white">
-              {rec.title || `Recording ${rec.id.split('-')[0]}`}
+              {rec.title || `Session ${rec.id.split('-')[0]}`}
             </h1>
             <Badge className={`${
-              rec.status === 'completed' ? 'bg-emerald-500/80' : 
-              rec.status === 'recording' ? 'bg-primary/80 animate-pulse' : 
-              rec.status === 'processing' ? 'bg-yellow-500/80 animate-pulse' : 'bg-destructive/80'
-            } backdrop-blur-md capitalize`}>
+              rec.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
+              rec.status === 'recording' ? 'bg-primary/10 text-primary border-primary/20 animate-pulse' : 
+              rec.status === 'processing' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'
+            } backdrop-blur-md capitalize text-[10px] font-bold px-3`}>
               {rec.status}
             </Badge>
           </div>
-          <p className="text-muted-foreground">Detailed capture analysis and resource properties.</p>
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <TargetIcon className="w-4 h-4 text-accent" />
+            Source: <span className="text-white font-medium">{rec.targets?.name || 'Manual Ingest'}</span> • 
+            <span className="uppercase font-mono text-xs text-accent">{rec.targets?.provider || rec.provider}</span>
+          </p>
         </div>
 
         <div className="flex gap-2">
-          {rec.storage_path && (
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
-              <Download className="w-4 h-4 mr-2" />
-              Download MP4
+          {signedUrl && (
+            <Button asChild className="bg-primary hover:bg-primary/90">
+              <a href={signedUrl} download={`${rec.title || rec.id}.mp4`}>
+                <Download className="w-4 h-4 mr-2" />
+                Download Raw
+              </a>
             </Button>
           )}
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Media Preview */}
-        <Card className="lg:col-span-2 border-border/50 bg-card/40 overflow-hidden">
-          <div className="relative aspect-video bg-black flex items-center justify-center">
-            {rec.storage_path ? (
-              <div className="text-center space-y-4">
-                <FileVideo className="w-16 h-16 mx-auto text-accent opacity-20" />
-                <p className="text-sm text-muted-foreground">Video playback available via Storage path</p>
-              </div>
-            ) : (
-              <Image 
-                src={rec.thumbnail_path || `https://picsum.photos/seed/${rec.id}/1280/720`}
-                alt="Capture Preview"
-                fill
-                className="object-cover opacity-50 blur-[2px]"
-                data-ai-hint="video stream"
-              />
-            )}
-            <div className="absolute inset-0 flex items-center justify-center">
-               <div className="bg-background/80 backdrop-blur-md px-6 py-3 rounded-2xl border border-border/50 flex items-center gap-3">
-                 <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                 <span className="text-sm font-medium">Verified capture properties</span>
-               </div>
-            </div>
-          </div>
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <h4 className="text-sm font-semibold text-white">Stream Source</h4>
-                <p className="text-xs text-muted-foreground font-mono">{rec.targets?.name || 'Manual Ingest'}</p>
-              </div>
-              <div className="text-right space-y-1">
-                <h4 className="text-sm font-semibold text-white">Identifier</h4>
-                <p className="text-xs text-muted-foreground font-mono">{rec.id}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Main Content Area */}
+        <div className="lg:col-span-2 space-y-6">
+          <RecordingPlayer 
+            signedUrl={signedUrl} 
+            thumbnailPath={rec.thumbnail_path} 
+            status={rec.status} 
+          />
 
-        {/* Metadata Sidebar */}
-        <div className="space-y-6">
           <Card className="border-border/50 bg-card/40">
-            <CardHeader>
-              <CardTitle className="text-lg">Temporal Data</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Info className="w-4 h-4 text-accent" />
+                Session Intelligence
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Storage Identifier</p>
+                  <p className="text-xs text-white font-mono bg-muted/30 p-2 rounded truncate">{rec.id}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">File Metadata</p>
+                  <p className="text-xs text-white">
+                    {rec.mime_type || 'video/mp4'} • {formatSize(rec.file_size_bytes)}
+                  </p>
+                </div>
+              </div>
+              
+              {rec.error_message && (
+                <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20 mt-4">
+                  <p className="text-[10px] uppercase text-destructive font-bold mb-1">Termination Report</p>
+                  <p className="text-xs text-destructive/90">{rec.error_message}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar Metadata */}
+        <div className="space-y-6">
+          <Card className="border-border/50 bg-card/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Temporal Data</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Calendar className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Start Date</p>
-                  <p className="text-sm text-white">{new Date(rec.started_at).toLocaleDateString()}</p>
+                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Captured On</p>
+                  <p className="text-sm text-white">{new Date(rec.started_at).toLocaleDateString(undefined, { dateStyle: 'long' })}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -131,38 +156,45 @@ export default async function RecordingDetailPage({ params }: { params: Promise<
                   <Clock className="w-4 h-4 text-accent" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Duration</p>
+                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Total Duration</p>
                   <p className="text-sm text-white">
-                    {rec.duration_seconds ? `${Math.floor(rec.duration_seconds / 60)}m ${rec.duration_seconds % 60}s` : 'Unknown'}
+                    {rec.duration_seconds 
+                      ? `${Math.floor(rec.duration_seconds / 60)}m ${rec.duration_seconds % 60}s` 
+                      : 'N/A'}
                   </p>
                 </div>
+              </div>
+              <Separator className="bg-border/40" />
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground">Internal Timestamp</p>
+                <p className="text-[10px] font-mono text-muted-foreground/60">{new Date(rec.started_at).toISOString()}</p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-border/50 bg-card/40">
-            <CardHeader>
-              <CardTitle className="text-lg">Storage Info</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Infrastructure</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-muted">
-                  <HardDrive className="w-4 h-4 text-muted-foreground" />
+                  <Database className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <div>
-                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Storage Path</p>
-                  <p className="text-sm text-white font-mono truncate max-w-[150px]">
-                    {rec.storage_path || 'Not finalized'}
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Bucket Node</p>
+                  <p className="text-xs text-white truncate font-mono">
+                    {rec.storage_path || 'Writing to disk...'}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-muted">
-                  <TargetIcon className="w-4 h-4 text-muted-foreground" />
+                  <HardDrive className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Provider Ref</p>
-                  <p className="text-sm text-white capitalize">{rec.targets?.provider || rec.provider}</p>
+                  <p className="text-[10px] uppercase text-muted-foreground font-bold">Provider API</p>
+                  <p className="text-xs text-white capitalize">{rec.targets?.provider || rec.provider} Protocol</p>
                 </div>
               </div>
             </CardContent>

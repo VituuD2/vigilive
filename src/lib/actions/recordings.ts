@@ -6,6 +6,40 @@ import { initiateRecording, stopRecording } from '@/core/engine/lifecycle';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
+ * Generates a signed URL for a recording's storage path.
+ * Valid for 1 hour.
+ */
+export async function getSignedUrlForRecording(recordingId: string) {
+  const supabase = await createClient();
+  const adminSupabase = createAdminClient();
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  const { data: recording, error } = await supabase
+    .from('recordings')
+    .select('storage_path')
+    .eq('id', recordingId)
+    .single();
+
+  if (error || !recording?.storage_path) {
+    throw new Error('Recording or storage path not found');
+  }
+
+  // Generate signed URL from 'recordings' bucket
+  const { data, error: urlError } = await adminSupabase
+    .storage
+    .from('recordings')
+    .createSignedUrl(recording.storage_path, 3600); // 1 hour expiry
+
+  if (urlError) {
+    throw new Error(`Failed to generate signed URL: ${urlError.message}`);
+  }
+
+  return data.signedUrl;
+}
+
+/**
  * Manually enqueues a recording job for a specific target.
  */
 export async function manualEnqueueRecording(targetId: string, title?: string, streamUrl?: string) {
