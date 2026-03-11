@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { TargetStatus } from '@/types/database';
+import { TikTokProvider } from '@/core/providers/tiktok-scraper';
 
 const targetSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -53,7 +54,6 @@ export async function deleteTarget(id: string) {
 export async function updateTargetStatus(id: string, status: TargetStatus) {
   const supabase = await createClient();
   
-  // When resuming, ensure monitor_enabled is true
   const monitor_enabled = status === 'active';
 
   const { error } = await supabase
@@ -70,4 +70,37 @@ export async function updateTargetStatus(id: string, status: TargetStatus) {
   revalidatePath('/admin/targets');
   revalidatePath('/admin');
   return { success: true };
+}
+
+/**
+ * Runs a one-off detection test for a target and returns diagnostics.
+ */
+export async function testTargetDetection(id: string) {
+  const supabase = await createClient();
+  const { data: target, error: targetError } = await supabase
+    .from('targets')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (targetError || !target) throw new Error('Target not found');
+
+  let provider;
+  if (target.provider === 'tiktok') {
+    provider = new TikTokProvider();
+  } else {
+    throw new Error(`Provider ${target.provider} test not implemented yet.`);
+  }
+
+  const result = await provider.checkStatus(target.external_identifier);
+
+  // Log the test attempt
+  await supabase.from('system_logs').insert([{
+    level: result.isLive ? 'info' : 'warn',
+    message: `DETECTION_TEST: ${target.name} check returned isLive=${result.isLive}`,
+    target_id: id,
+    context: { diagnostics: result.diagnostics, metadata: result.metadata }
+  }]);
+
+  return result;
 }
