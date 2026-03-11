@@ -20,7 +20,7 @@ import { getSignedUrlForRecording } from '@/lib/actions/recordings';
 import { RecordingPlayer } from '@/components/admin/recording-player';
 import { Separator } from '@/components/ui/separator';
 
-export default async function RecordingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function RecordingDetailPage({ params }: { params: { id: string } }) {
   const { id } = await params;
   const supabase = await createClient();
 
