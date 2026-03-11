@@ -15,7 +15,7 @@ async function StopButton({ id }: { id: string }) {
       "use server"
       await stopActiveRecording(id);
     }}>
-      <Button variant="destructive" size="icon" className="h-8 w-8" title="Stop Recording">
+      <Button variant="destructive" size="icon" className="h-8 w-8" title="Stop Local Process (Signal to Worker)">
         <Square className="h-3 w-3" />
       </Button>
     </form>
@@ -29,7 +29,7 @@ async function CleanupButton({ id }: { id: string }) {
       "use server"
       await cleanupStaleRecording(id);
     }}>
-      <Button variant="outline" size="icon" className="h-8 w-8 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/10" title="Cleanup Stale Job">
+      <Button variant="outline" size="icon" className="h-8 w-8 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/10" title="Force Cleanup Stale Job">
         <RefreshCcw className="h-3 w-3" />
       </Button>
     </form>
@@ -47,7 +47,7 @@ export default async function RecordingsPage() {
     return (
       <div className="p-8 border-2 border-dashed border-destructive/20 rounded-2xl bg-destructive/5 text-center space-y-2">
         <AlertTriangle className="w-8 h-8 text-destructive mx-auto" />
-        <h3 className="font-bold">Library unavailable</h3>
+        <h3 className="font-bold">Library synchronization error</h3>
         <p className="text-sm text-muted-foreground">{error.message}</p>
       </div>
     );
@@ -70,7 +70,7 @@ export default async function RecordingsPage() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white">Capture Library</h1>
-          <p className="text-muted-foreground">Autonomous recording archive and job management.</p>
+          <p className="text-muted-foreground">Archive of sessions captured by autonomous local workers.</p>
         </div>
       </div>
 
@@ -81,14 +81,14 @@ export default async function RecordingsPage() {
               <div className="relative aspect-video bg-muted overflow-hidden">
                 <Image 
                   src={rec.thumbnail_path || `https://picsum.photos/seed/${rec.id}/640/360`}
-                  alt="Thumbnail"
+                  alt="Capture Preview"
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-60 group-hover:opacity-100"
                 />
                 <div className="absolute top-2 right-2 flex gap-1">
                   <Badge className={`${getStatusColor(rec.status)} backdrop-blur-md border-0 shadow-lg capitalize`}>
                     {(rec.status === 'recording' || rec.status === 'processing') && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                    {rec.status}
+                    {rec.status === 'recording' ? 'In Progress' : rec.status}
                   </Badge>
                 </div>
                 {rec.duration_seconds && (
@@ -121,7 +121,7 @@ export default async function RecordingsPage() {
                 <div className="flex gap-2 pt-2">
                   <Button asChild variant="outline" size="sm" className="flex-1 text-xs h-8 border-border/60">
                     <Link href={`/admin/recordings/${rec.id}`}>
-                      Details
+                      View Details
                     </Link>
                   </Button>
                   
@@ -129,7 +129,7 @@ export default async function RecordingsPage() {
                     <StopButton id={rec.id} />
                   )}
                   
-                  {rec.status === 'recording' && rec.locked_at && (
+                  {(rec.status === 'processing' || rec.status === 'recording') && (
                     <CleanupButton id={rec.id} />
                   )}
 
@@ -139,6 +139,12 @@ export default async function RecordingsPage() {
                     </Button>
                   )}
                 </div>
+                
+                {rec.status === 'recording' && (
+                  <p className="text-[9px] text-muted-foreground italic text-center">
+                    Worker is currently writing to disk. Stop signal will take a few seconds to process.
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))
@@ -146,8 +152,8 @@ export default async function RecordingsPage() {
           <div className="col-span-full py-20 flex flex-col items-center justify-center text-muted-foreground space-y-4 border-2 border-dashed border-border/30 rounded-2xl">
             <Video className="w-12 h-12 opacity-10" />
             <div className="text-center">
-              <p className="font-medium">No captures found</p>
-              <p className="text-xs">Recording sessions will appear here once live streams are detected.</p>
+              <p className="font-medium">Capture library is empty</p>
+              <p className="text-xs">Once the local worker detects live streams, recordings will appear here.</p>
             </div>
           </div>
         )}

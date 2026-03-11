@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { Button } from '@/components/ui/button';
-import { Search, Filter, AlertCircle, Radio, Youtube, Twitch, Globe, HeartPulse, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Search, AlertCircle, Radio, Youtube, Twitch, Globe, HeartPulse, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { TargetDialog } from '@/components/admin/target-dialog';
@@ -33,7 +32,7 @@ export default async function TargetsPage() {
       <div className="flex flex-col items-center justify-center h-[400px] border-2 border-dashed border-destructive/20 rounded-2xl bg-destructive/5 space-y-4">
         <AlertCircle className="w-10 h-10 text-destructive" />
         <div className="text-center">
-          <h3 className="font-bold text-lg">Failed to load targets</h3>
+          <h3 className="font-bold text-lg">Failed to load fleet</h3>
           <p className="text-sm text-muted-foreground">{error.message}</p>
         </div>
       </div>
@@ -59,7 +58,7 @@ export default async function TargetsPage() {
             <HeartPulse className="w-8 h-8 text-primary" />
             Monitoring Fleet
           </h1>
-          <p className="text-muted-foreground">Autonomous discovery engine health and target management.</p>
+          <p className="text-muted-foreground">Autonomous discovery discovery control plane for external workers.</p>
         </div>
         <TargetDialog />
       </div>
@@ -68,20 +67,23 @@ export default async function TargetsPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search fleet..."
+            placeholder="Search monitoring fleet..."
             className="pl-9 bg-card/50 border-border/50"
           />
         </div>
+        <Badge variant="outline" className="text-xs border-primary/20 bg-primary/5 text-primary">
+          {typedTargets.length} Monitors Configured
+        </Badge>
       </div>
 
       <div className="rounded-xl border border-border/50 bg-card/30 overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>
-              <TableHead>Target Identity</TableHead>
-              <TableHead>Discovery Health</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Live</TableHead>
+              <TableHead>Account Identity</TableHead>
+              <TableHead>Probe Health</TableHead>
+              <TableHead>Admin Status</TableHead>
+              <TableHead>Last Live Session</TableHead>
               <TableHead className="text-right">Operations</TableHead>
             </TableRow>
           </TableHeader>
@@ -119,12 +121,12 @@ export default async function TargetsPage() {
                             </span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-popover border-border">
-                          <p className="text-xs font-semibold">Discovery Logic Output:</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {target.last_discovery_error || (target.last_discovery_status === 'success' ? 'Live discovery active' : 'Waiting for next cycle')}
+                        <TooltipContent className="bg-popover border-border max-w-[200px]">
+                          <p className="text-xs font-semibold">Discovery Output:</p>
+                          <p className="text-[10px] text-muted-foreground break-words">
+                            {target.last_discovery_error || (target.last_discovery_status === 'success' ? 'Worker successfully probed source' : 'Waiting for worker sync')}
                           </p>
-                          <p className="text-[10px] mt-1 text-accent">Last check: {target.last_checked_at ? new Date(target.last_checked_at).toLocaleTimeString() : 'Never'}</p>
+                          <p className="text-[10px] mt-1 text-accent">Last probe: {target.last_checked_at ? new Date(target.last_checked_at).toLocaleTimeString() : 'Never'}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -148,7 +150,7 @@ export default async function TargetsPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">
-                  No targets in the fleet.
+                  The fleet is currently empty. Add your first target monitor.
                 </TableCell>
               </TableRow>
             )}

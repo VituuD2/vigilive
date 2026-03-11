@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { TargetStatus, DiscoveryStatus } from '@/types/database';
+import { TargetStatus, DiscoveryStatus, TargetProvider } from '@/types/database';
 import { TikTokProvider } from '@/core/providers/tiktok-scraper';
 
 const targetSchema = z.object({
@@ -12,16 +12,41 @@ const targetSchema = z.object({
   external_identifier: z.string().min(1, 'Source Identifier is required'),
 });
 
+/**
+ * Normalizes identifiers (strips @, lowercase, trim)
+ */
+function normalizeIdentifier(id: string, provider: string): string {
+  let normalized = id.trim().toLowerCase();
+  if (provider === 'tiktok' || provider === 'instagram') {
+    normalized = normalized.replace(/^@/, '');
+  }
+  return normalized;
+}
+
 export async function createTarget(formData: z.infer<typeof targetSchema>) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  const normalizedId = normalizeIdentifier(formData.external_identifier, formData.provider);
+
+  // Check for duplicates
+  const { data: existing } = await supabase
+    .from('targets')
+    .select('id')
+    .eq('provider', formData.provider)
+    .eq('external_identifier', normalizedId)
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error(`A target for ${formData.provider} with identifier ${normalizedId} already exists in the fleet.`);
+  }
 
   const { error } = await supabase
     .from('targets')
     .insert([{
       name: formData.name,
       provider: formData.provider,
-      external_identifier: formData.external_identifier,
+      external_identifier: normalizedId,
       status: 'active' as TargetStatus,
       monitor_enabled: true,
       check_interval_seconds: 60,
@@ -34,8 +59,8 @@ export async function createTarget(formData: z.infer<typeof targetSchema>) {
   
   await supabase.from('system_logs').insert([{
     level: 'info',
-    message: `Fleet expansion: Added ${formData.external_identifier}`,
-    context: { provider: formData.provider }
+    message: `Fleet expansion: Added ${formData.provider} target ${normalizedId}`,
+    context: { provider: formData.provider, identifier: normalizedId, source: 'admin_ui' }
   }]);
 
   revalidatePath('/admin/targets');
@@ -53,7 +78,6 @@ export async function deleteTarget(id: string) {
 
 export async function updateTargetStatus(id: string, status: TargetStatus) {
   const supabase = await createClient();
-  // Decentralized logic: if status is active, ensure monitor_enabled is true
   const monitor_enabled = status === 'active';
 
   const { error } = await supabase
@@ -94,7 +118,6 @@ export async function testTargetDetection(id: string) {
 
   const result = await provider.checkStatus(target.external_identifier);
 
-  // Persist discovery health
   const hasErrors = result.diagnostics?.some(d => !d.success);
   const discoveryStatus: DiscoveryStatus = result.isLive ? 'success' : (hasErrors ? 'failed' : 'offline');
   const discoveryError = hasErrors ? result.diagnostics?.find(d => !d.success)?.message : null;
@@ -109,7 +132,7 @@ export async function testTargetDetection(id: string) {
     level: result.isLive ? 'info' : (hasErrors ? 'error' : 'warn'),
     message: `HEALTH_CHECK: ${target.name} discovery status: ${discoveryStatus}`,
     target_id: id,
-    context: { diagnostics: result.diagnostics }
+    context: { diagnostics: result.diagnostics, manual: true }
   }]);
 
   revalidatePath('/admin/targets');

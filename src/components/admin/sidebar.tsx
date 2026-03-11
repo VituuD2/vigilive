@@ -1,4 +1,3 @@
-
 "use client"
 
 import { 
@@ -6,12 +5,9 @@ import {
   Target, 
   Video, 
   History, 
-  Settings, 
   LogOut,
   ShieldCheck,
-  Zap,
-  Activity,
-  FileText
+  Terminal,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -29,9 +25,9 @@ import Link from 'next/link'
 
 const NAV_ITEMS = [
   { title: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
-  { title: 'Monitoring Targets', icon: Target, href: '/admin/targets' },
+  { title: 'Monitoring Fleet', icon: Target, href: '/admin/targets' },
   { title: 'Capture Library', icon: Video, href: '/admin/recordings' },
-  { title: 'System Logs', icon: History, href: '/admin/logs' },
+  { title: 'Audit Trail', icon: History, href: '/admin/logs' },
 ]
 
 export function AdminSidebar({ user, profile }: { user: any, profile: any }) {
@@ -54,7 +50,7 @@ export function AdminSidebar({ user, profile }: { user: any, profile: any }) {
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="font-bold text-sm leading-tight">Vigilive Admin</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Cloud Core</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Control Plane</span>
           </div>
         </div>
       </SidebarHeader>
@@ -76,6 +72,22 @@ export function AdminSidebar({ user, profile }: { user: any, profile: any }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          
+          <SidebarSeparator className="my-2" />
+          
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              asChild 
+              isActive={pathname === '/admin/worker-guide'}
+              tooltip="Worker Guide"
+              className="text-primary hover:text-primary transition-colors"
+            >
+              <Link href="/admin/worker-guide">
+                <Terminal />
+                <span>Worker Guide</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarSeparator />

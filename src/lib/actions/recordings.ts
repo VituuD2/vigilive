@@ -29,19 +29,12 @@ export async function manualEnqueueRecording(targetId: string, title?: string, s
     streamUrl
   );
 
-  // Note: initiateRecording returns existing job if it exists.
-  // We check if it was already in a recording/processing state.
-  if (recording && (recording.status === 'recording' || (recording as any).created_at !== recording.updated_at)) {
-    // If it already existed and wasn't just created now (simplified check)
-    // we might want to warn the user, but for now we just return it.
-  }
-
   await supabase.from('system_logs').insert([{
     level: 'info',
     message: `MANUAL_ENQUEUE: User ${user.email} manually started recording for ${target.name}`,
     target_id: targetId,
     recording_id: recording.id,
-    context: { user_id: user.id, stream_url: streamUrl }
+    context: { user_id: user.id, stream_url: streamUrl, source: 'admin_ui' }
   }]);
 
   revalidatePath('/admin/recordings');
@@ -60,6 +53,15 @@ export async function stopActiveRecording(recordingId: string) {
 
   try {
     await stopRecording(recordingId, user.id);
+    
+    await supabase.from('system_logs').insert([{
+      level: 'info',
+      message: `STOP_SIGNAL: Stop signal sent for recording ${recordingId}`,
+      recording_id: recordingId,
+      user_id: user.id,
+      context: { source: 'admin_ui', action: 'manual_stop' }
+    }]);
+
     revalidatePath('/admin/recordings');
     return { success: true };
   } catch (error: any) {
@@ -69,6 +71,7 @@ export async function stopActiveRecording(recordingId: string) {
 
 /**
  * Cleans up a stale recording job that might be stuck.
+ * Sets status to failed and closes the timeline with ended_at.
  */
 export async function cleanupStaleRecording(recordingId: string) {
   const supabase = createAdminClient();
@@ -76,13 +79,21 @@ export async function cleanupStaleRecording(recordingId: string) {
     .from('recordings')
     .update({ 
       status: 'failed', 
-      error_message: 'Stale job cleaned up by operator',
+      error_message: 'Stale job cleaned up by operator (forced fail)',
       locked_at: null,
+      ended_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
     .eq('id', recordingId);
 
   if (error) throw new Error(error.message);
+
+  await supabase.from('system_logs').insert([{
+    level: 'warn',
+    message: `CLEANUP: Recording ${recordingId} was forced to FAILED state by operator`,
+    recording_id: recordingId,
+    context: { source: 'admin_ui', action: 'force_cleanup' }
+  }]);
 
   revalidatePath('/admin/recordings');
   return { success: true };
