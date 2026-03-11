@@ -15,8 +15,8 @@ async function StopButton({ id }: { id: string }) {
       "use server"
       await stopActiveRecording(id);
     }}>
-      <Button variant="destructive" size="icon" className="h-7 w-7" title="Stop Local Process">
-        <Square className="h-3 w-3" />
+      <Button variant="destructive" size="icon" className="h-6 w-6" title="Stop Local Process">
+        <Square className="h-2.5 w-2.5" />
       </Button>
     </form>
   )
@@ -29,8 +29,8 @@ async function CleanupButton({ id }: { id: string }) {
       "use server"
       await cleanupStaleRecording(id);
     }}>
-      <Button variant="outline" size="icon" className="h-7 w-7 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/10" title="Force Cleanup">
-        <RefreshCcw className="h-3 w-3" />
+      <Button variant="outline" size="icon" className="h-6 w-6 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/10" title="Force Cleanup">
+        <RefreshCcw className="h-2.5 w-2.5" />
       </Button>
     </form>
   )
@@ -69,78 +69,78 @@ export default async function RecordingsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <Video className="w-8 h-8 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <Video className="w-6 h-6 text-primary" />
             Capture Library
           </h1>
-          <p className="text-muted-foreground">Archive of sessions captured by autonomous local workers.</p>
+          <p className="text-xs text-muted-foreground">Archive of sessions captured by autonomous local workers.</p>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {typedRecordings.length > 0 ? (
           typedRecordings.map((rec) => (
-            <Card key={rec.id} className="group border-border/50 bg-card/40 overflow-hidden hover:border-accent/50 transition-all flex flex-col">
+            <Card key={rec.id} className="group border-border/50 bg-card/40 overflow-hidden hover:border-accent/40 transition-all flex flex-col">
               <div className="relative aspect-video bg-muted overflow-hidden">
                 <Image 
-                  src={rec.thumbnail_path || `https://picsum.photos/seed/${rec.id}/640/360`}
+                  src={rec.thumbnail_path || `https://picsum.photos/seed/${rec.id}/400/225`}
                   alt="Capture Preview"
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-60 group-hover:opacity-100"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-50 group-hover:opacity-100"
                 />
-                <div className="absolute top-2 right-2 flex gap-1">
-                  <Badge variant="outline" className={`${getStatusStyles(rec.status)} backdrop-blur-md text-[9px] uppercase font-bold py-0 h-5`}>
-                    {(rec.status === 'recording' || rec.status === 'processing') && <Loader2 className="w-2.5 h-2.5 mr-1 animate-spin" />}
+                <div className="absolute top-1.5 right-1.5 flex gap-1">
+                  <Badge variant="outline" className={`${getStatusStyles(rec.status)} backdrop-blur-md text-[8px] uppercase font-bold py-0 h-4 px-1.5`}>
+                    {(rec.status === 'recording' || rec.status === 'processing') && <Loader2 className="w-2 h-2 mr-1 animate-spin" />}
                     {rec.status === 'recording' ? 'Live' : rec.status}
                   </Badge>
                 </div>
                 {rec.duration_seconds && (
-                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-bold text-white backdrop-blur-sm">
+                  <div className="absolute bottom-1.5 right-1.5 px-1 py-0.5 rounded bg-black/80 text-[8px] font-bold text-white backdrop-blur-sm">
                     {Math.floor(rec.duration_seconds / 60)}m {rec.duration_seconds % 60}s
                   </div>
                 )}
                 {rec.status === 'completed' && (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-[1px]">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 backdrop-blur-[1px]">
                     <Link href={`/admin/recordings/${rec.id}`}>
-                      <PlayCircle className="w-12 h-12 text-primary shadow-2xl" />
+                      <PlayCircle className="w-8 h-8 text-primary shadow-2xl" />
                     </Link>
                   </div>
                 )}
               </div>
-              <CardContent className="p-4 flex-1 flex flex-col justify-between">
-                <div className="space-y-1 mb-3">
-                  <h3 className="font-semibold truncate text-sm text-white leading-none">
+              <CardContent className="p-3 flex-1 flex flex-col justify-between">
+                <div className="space-y-0.5 mb-2">
+                  <h3 className="font-medium truncate text-xs text-white leading-none">
                     {rec.title || `Session ${rec.id.split('-')[0]}`}
                   </h3>
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-muted-foreground truncate">
+                    <p className="text-[9px] text-muted-foreground truncate">
                       {rec.targets?.name || 'Manual Ingest'}
                     </p>
-                    <span className="text-accent uppercase font-mono text-[9px] font-bold tracking-tighter">
+                    <span className="text-accent uppercase font-mono text-[8px] font-bold">
                       {rec.targets?.provider || rec.provider}
                     </span>
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-4">
+                <div className="flex items-center justify-between text-[8px] text-muted-foreground mb-3 opacity-70">
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-2.5 h-2.5 text-accent/60" />
+                    <Calendar className="w-2 h-2" />
                     {new Date(rec.started_at).toLocaleDateString()}
                   </div>
                   <div className="flex items-center gap-1">
-                    <Clock className="w-2.5 h-2.5 text-accent/60" />
+                    <Clock className="w-2 h-2" />
                     {new Date(rec.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button asChild variant="secondary" size="sm" className="flex-1 text-[10px] h-7 font-bold uppercase tracking-wider">
+                <div className="flex gap-1.5">
+                  <Button asChild variant="secondary" size="sm" className="flex-1 text-[9px] h-6 font-bold uppercase tracking-wider">
                     <Link href={`/admin/recordings/${rec.id}`}>
                       {rec.status === 'completed' ? 'Watch' : 'Review'}
                     </Link>
                   </Button>
                   
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1">
                     {(rec.status === 'recording' || rec.status === 'processing') && (
                       <StopButton id={rec.id} />
                     )}
@@ -150,9 +150,9 @@ export default async function RecordingsPage() {
                     )}
 
                     {rec.storage_path && rec.status === 'completed' && (
-                      <Button variant="outline" size="icon" className="h-7 w-7 border-border/60" asChild>
+                      <Button variant="outline" size="icon" className="h-6 w-6 border-border/60" asChild>
                         <a href={`/admin/recordings/${rec.id}`}>
-                          <Download className="h-3 w-3" />
+                          <Download className="h-2.5 w-2.5" />
                         </a>
                       </Button>
                     )}
@@ -162,11 +162,11 @@ export default async function RecordingsPage() {
             </Card>
           ))
         ) : (
-          <div className="col-span-full py-20 flex flex-col items-center justify-center text-muted-foreground space-y-4 border-2 border-dashed border-border/30 rounded-2xl">
-            <Video className="w-12 h-12 opacity-10" />
+          <div className="col-span-full py-16 flex flex-col items-center justify-center text-muted-foreground space-y-3 border border-dashed border-border/30 rounded-xl">
+            <Video className="w-10 h-10 opacity-10" />
             <div className="text-center">
-              <p className="font-medium">Capture library is empty</p>
-              <p className="text-xs">Once the local worker detects live streams, recordings will appear here.</p>
+              <p className="text-sm font-medium">Capture library is empty</p>
+              <p className="text-[10px]">Active recordings will appear here automatically.</p>
             </div>
           </div>
         )}
