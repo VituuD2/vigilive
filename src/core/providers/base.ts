@@ -6,6 +6,13 @@ export interface StreamStatus {
   streamUrl?: string;
   title?: string;
   metadata?: Record<string, any>;
+  diagnostics?: {
+    step: string;
+    success: boolean;
+    message: string;
+    statusCode?: number;
+    error?: string;
+  }[];
 }
 
 export abstract class LiveProvider {
