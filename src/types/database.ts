@@ -63,7 +63,7 @@ export interface SystemLog {
 export interface RecordingEvent {
   id: string;
   recording_id: string | null;
-  target_id: uuid | null;
+  target_id: string | null;
   event_type: string;
   message: string;
   context: Record<string, unknown>;

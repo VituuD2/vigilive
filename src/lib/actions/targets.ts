@@ -53,6 +53,7 @@ export async function deleteTarget(id: string) {
 
 export async function updateTargetStatus(id: string, status: TargetStatus) {
   const supabase = await createClient();
+  // Decentralized logic: if status is active, ensure monitor_enabled is true
   const monitor_enabled = status === 'active';
 
   const { error } = await supabase

@@ -117,5 +117,14 @@ export async function initiateRecording(targetId: string, title: string, provide
 
   if (error) throw error;
 
+  // Log new job creation
+  await supabase.from('system_logs').insert([{
+    level: 'info',
+    message: `ENGINE: New recording job initialized for target ${targetId}`,
+    target_id: targetId,
+    recording_id: data.id,
+    context: { source: 'engine_lifecycle', stream_id: externalStreamId }
+  }]);
+
   return data;
 }
