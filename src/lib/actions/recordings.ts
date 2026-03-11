@@ -2,12 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { initiateRecording } from '@/core/engine/lifecycle';
-import { RecordingStatus } from '@/types/database';
+import { initiateRecording, stopRecording } from '@/core/engine/lifecycle';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * Manually enqueues a recording job for a specific target.
- * Bypasses the auto-detection loop.
  */
 export async function manualEnqueueRecording(targetId: string, title?: string, streamUrl?: string) {
   const supabase = await createClient();
@@ -15,7 +14,6 @@ export async function manualEnqueueRecording(targetId: string, title?: string, s
 
   if (!user) throw new Error('Unauthorized');
 
-  // Fetch target details to get provider
   const { data: target, error: targetError } = await supabase
     .from('targets')
     .select('provider, name')
@@ -35,7 +33,6 @@ export async function manualEnqueueRecording(targetId: string, title?: string, s
     throw new Error('An active recording job already exists for this target.');
   }
 
-  // Log manual intervention
   await supabase.from('system_logs').insert([{
     level: 'info',
     message: `MANUAL_ENQUEUE: User ${user.email} manually started recording for ${target.name}`,
@@ -47,4 +44,42 @@ export async function manualEnqueueRecording(targetId: string, title?: string, s
   revalidatePath('/admin/recordings');
   revalidatePath('/admin');
   return { success: true, recordingId: recording.id };
+}
+
+/**
+ * Stops an active recording.
+ */
+export async function stopActiveRecording(recordingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  try {
+    await stopRecording(recordingId, user.id);
+    revalidatePath('/admin/recordings');
+    return { success: true };
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+}
+
+/**
+ * Cleans up a stale recording job that might be stuck.
+ */
+export async function cleanupStaleRecording(recordingId: string) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from('recordings')
+    .update({ 
+      status: 'failed', 
+      error_message: 'Stale job cleaned up by operator',
+      locked_at: null,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', recordingId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/admin/recordings');
+  return { success: true };
 }

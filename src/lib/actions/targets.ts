@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { TargetStatus } from '@/types/database';
+import { TargetStatus, DiscoveryStatus } from '@/types/database';
 import { TikTokProvider } from '@/core/providers/tiktok-scraper';
 
 const targetSchema = z.object({
@@ -22,8 +22,8 @@ export async function createTarget(formData: z.infer<typeof targetSchema>) {
       name: formData.name,
       provider: formData.provider,
       external_identifier: formData.external_identifier,
-      status: 'paused' as TargetStatus,
-      monitor_enabled: false,
+      status: 'active' as TargetStatus,
+      monitor_enabled: true,
       check_interval_seconds: 60,
       created_by: user?.id || null,
       created_at: new Date().toISOString(),
@@ -34,7 +34,7 @@ export async function createTarget(formData: z.infer<typeof targetSchema>) {
   
   await supabase.from('system_logs').insert([{
     level: 'info',
-    message: `Target created: ${formData.external_identifier}`,
+    message: `Fleet expansion: Added ${formData.external_identifier}`,
     context: { provider: formData.provider }
   }]);
 
@@ -53,7 +53,6 @@ export async function deleteTarget(id: string) {
 
 export async function updateTargetStatus(id: string, status: TargetStatus) {
   const supabase = await createClient();
-  
   const monitor_enabled = status === 'active';
 
   const { error } = await supabase
@@ -73,7 +72,7 @@ export async function updateTargetStatus(id: string, status: TargetStatus) {
 }
 
 /**
- * Runs a one-off detection test for a target and returns diagnostics.
+ * Runs a health check for a target and updates discovery state.
  */
 export async function testTargetDetection(id: string) {
   const supabase = await createClient();
@@ -89,18 +88,29 @@ export async function testTargetDetection(id: string) {
   if (target.provider === 'tiktok') {
     provider = new TikTokProvider();
   } else {
-    throw new Error(`Provider ${target.provider} test not implemented yet.`);
+    throw new Error(`Health check for ${target.provider} not implemented.`);
   }
 
   const result = await provider.checkStatus(target.external_identifier);
 
-  // Log the test attempt
+  // Persist discovery health
+  const hasErrors = result.diagnostics?.some(d => !d.success);
+  const discoveryStatus: DiscoveryStatus = result.isLive ? 'success' : (hasErrors ? 'failed' : 'offline');
+  const discoveryError = hasErrors ? result.diagnostics?.find(d => !d.success)?.message : null;
+
+  await supabase.from('targets').update({
+    last_discovery_status: discoveryStatus,
+    last_discovery_error: discoveryError,
+    last_checked_at: new Date().toISOString()
+  }).eq('id', id);
+
   await supabase.from('system_logs').insert([{
-    level: result.isLive ? 'info' : 'warn',
-    message: `DETECTION_TEST: ${target.name} check returned isLive=${result.isLive}`,
+    level: result.isLive ? 'info' : (hasErrors ? 'error' : 'warn'),
+    message: `HEALTH_CHECK: ${target.name} discovery status: ${discoveryStatus}`,
     target_id: id,
-    context: { diagnostics: result.diagnostics, metadata: result.metadata }
+    context: { diagnostics: result.diagnostics }
   }]);
 
+  revalidatePath('/admin/targets');
   return result;
 }

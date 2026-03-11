@@ -1,12 +1,11 @@
-
 import { createAdminClient } from '@/lib/supabase/admin';
 import { TikTokProvider } from '@/core/providers/tiktok-scraper';
 import { initiateRecording } from './lifecycle';
 import { Target } from '@/types/database';
 
 /**
- * Monitoring Engine: Iterates through active targets and checks live status.
- * Enhanced with diagnostics and robust logging.
+ * Discovery Engine: Autonomous monitor that discovers live streams and triggers recordings.
+ * Persists health status and discovery diagnostics directly to targets.
  */
 export async function runMonitoringCycle() {
   const supabase = createAdminClient();
@@ -20,57 +19,43 @@ export async function runMonitoringCycle() {
     .eq('monitor_enabled', true);
 
   if (error) {
-    console.error('Failed to fetch targets for monitoring:', error.message);
+    console.error('Failed to fetch targets for discovery:', error.message);
     return { success: false, error: error.message };
-  }
-
-  if (isDebug) {
-    console.log(`[Monitor] Starting cycle for ${targets?.length || 0} targets...`);
   }
 
   const results = [];
   const providers = {
     tiktok: new TikTokProvider(),
+    // youtube: new YouTubeProvider(), // Placeholder for future expansion
   };
 
   for (const target of (targets as unknown as Target[])) {
     try {
-      if (isDebug) console.log(`[Monitor] Checking target: ${target.name} (${target.external_identifier})`);
-
-      const provider = providers[target.provider as keyof typeof providers];
+      const provider = (providers as any)[target.provider];
       if (!provider) {
-        await supabase.from('system_logs').insert([{
-          level: 'warn',
-          message: `Monitoring skipped for ${target.name}: No provider implementation for ${target.provider}`,
-          target_id: target.id,
-          context: { provider: target.provider }
-        }]);
+        await updateDiscoveryStatus(target.id, 'failed', `No provider for ${target.provider}`);
         continue;
       }
 
-      // Validate identifier
       if (!provider.validateIdentifier(target.external_identifier)) {
-        await supabase.from('system_logs').insert([{
-          level: 'error',
-          message: `Validation failed for ${target.name}: Invalid identifier format`,
-          target_id: target.id,
-          context: { identifier: target.external_identifier, provider: target.provider }
-        }]);
+        await updateDiscoveryStatus(target.id, 'failed', 'Invalid identifier format');
         continue;
       }
 
-      // Check status with diagnostics
+      // Check status with timeout and diagnostics
       const status = await provider.checkStatus(target.external_identifier);
       
-      const updates: any = {
+      const targetUpdates: any = {
         last_checked_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
       if (status.isLive) {
-        updates.last_live_at = new Date().toISOString();
+        targetUpdates.last_live_at = new Date().toISOString();
+        targetUpdates.last_discovery_status = 'success';
+        targetUpdates.last_discovery_error = null;
         
-        // Initiate recording job
+        // Auto-create recording job
         const recording = await initiateRecording(
           target.id, 
           status.title || target.name, 
@@ -78,52 +63,50 @@ export async function runMonitoringCycle() {
           status.streamUrl 
         );
 
-        if (!recording) {
-          if (isDebug) console.log(`[Monitor] Skipping recording for ${target.name}: Job already exists.`);
-        } else {
+        if (recording) {
           await supabase.from('system_logs').insert([{
             level: 'info',
-            message: `LIVE_DETECTED: Created recording job for ${target.name}`,
+            message: `AUTO_RECORD: Live detected for ${target.name}. Job ${recording.id} enqueued.`,
             target_id: target.id,
             recording_id: recording.id,
-            context: { ...status.metadata, diagnostics: status.diagnostics }
+            context: { diagnostics: status.diagnostics }
           }]);
         }
       } else {
-        // If not live, but we have diagnostics indicating errors or if in debug mode, log the check
         const hasErrors = status.diagnostics?.some(d => !d.success);
+        targetUpdates.last_discovery_status = hasErrors ? 'failed' : 'offline';
+        targetUpdates.last_discovery_error = hasErrors 
+          ? status.diagnostics?.find(d => !d.success)?.message || 'Discovery error'
+          : null;
+
         if (hasErrors || isDebug) {
           await supabase.from('system_logs').insert([{
             level: hasErrors ? 'warn' : 'debug',
-            message: `Target check completed: ${target.name} is offline`,
+            message: `Discovery check: ${target.name} is ${hasErrors ? 'failing' : 'offline'}`,
             target_id: target.id,
-            context: { 
-              isLive: false, 
-              diagnostics: status.diagnostics,
-              metadata: status.metadata
-            }
+            context: { diagnostics: status.diagnostics }
           }]);
         }
       }
 
-      await supabase
-        .from('targets')
-        .update(updates)
-        .eq('id', target.id);
-
+      await supabase.from('targets').update(targetUpdates).eq('id', target.id);
       results.push({ targetId: target.id, isLive: status.isLive });
 
     } catch (err: any) {
-      console.error(`Error monitoring target ${target.id}:`, err.message);
-      await supabase.from('system_logs').insert([{
-        level: 'error',
-        message: `Monitoring exception for target ${target.id}`,
-        target_id: target.id,
-        context: { error: err.message, stack: err.stack }
-      }]);
+      console.error(`Discovery exception for target ${target.id}:`, err.message);
+      await updateDiscoveryStatus(target.id, 'failed', err.message);
     }
   }
 
-  if (isDebug) console.log(`[Monitor] Cycle complete. Processed ${results.length} targets.`);
   return { success: true, processed: results.length, results };
+}
+
+async function updateDiscoveryStatus(targetId: string, status: string, errorMsg: string) {
+  const supabase = createAdminClient();
+  await supabase.from('targets').update({
+    last_discovery_status: status,
+    last_discovery_error: errorMsg,
+    last_checked_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }).eq('id', targetId);
 }

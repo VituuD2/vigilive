@@ -17,7 +17,7 @@ export async function transitionRecordingStatus(
       status: newStatus,
       ...updates,
       updated_at: new Date().toISOString(),
-      ...(newStatus === 'completed' || newStatus === 'failed' ? { ended_at: new Date().toISOString() } : {})
+      ...(newStatus === 'completed' || newStatus === 'failed' ? { ended_at: new Date().toISOString(), locked_at: null } : {})
     })
     .eq('id', recordingId)
     .select()
@@ -32,6 +32,49 @@ export async function transitionRecordingStatus(
     recording_id: recordingId,
     target_id: data.target_id,
     context: updates
+  }]);
+
+  return data;
+}
+
+/**
+ * Terminates an active recording job.
+ */
+export async function stopRecording(recordingId: string, userId?: string) {
+  const supabase = createAdminClient();
+  
+  const { data: recording } = await supabase
+    .from('recordings')
+    .select('status, target_id')
+    .eq('id', recordingId)
+    .single();
+
+  if (!recording || (recording.status !== 'recording' && recording.status !== 'processing')) {
+    throw new Error('Recording is not in an active state.');
+  }
+
+  const { data, error } = await supabase
+    .from('recordings')
+    .update({
+      status: 'completed',
+      ended_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      locked_at: null,
+      error_message: 'Manually stopped by operator'
+    })
+    .eq('id', recordingId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await supabase.from('system_logs').insert([{
+    level: 'info',
+    message: `MANUAL_STOP: Recording ${recordingId} stopped by operator`,
+    recording_id: recordingId,
+    target_id: recording.target_id,
+    user_id: userId,
+    context: { source: 'admin_action' }
   }]);
 
   return data;
@@ -73,15 +116,6 @@ export async function initiateRecording(targetId: string, title: string, provide
     .single();
 
   if (error) throw error;
-
-  // 3. Log event
-  await supabase.from('system_logs').insert([{
-    level: 'info',
-    message: `LIVE_DETECTED: Created recording job ${data.id} for target ${targetId}`,
-    target_id: targetId,
-    recording_id: data.id,
-    context: { title, provider }
-  }]);
 
   return data;
 }

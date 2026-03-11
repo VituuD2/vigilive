@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, AlertCircle, Radio, Youtube, Twitch, Globe } from 'lucide-react';
+import { Search, Filter, AlertCircle, Radio, Youtube, Twitch, Globe, HeartPulse, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { TargetDialog } from '@/components/admin/target-dialog';
@@ -14,6 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default async function TargetsPage() {
   const supabase = await createClient();
@@ -49,8 +55,11 @@ export default async function TargetsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Monitoring Targets</h1>
-          <p className="text-muted-foreground">Manage streams and sources you want to monitor.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+            <HeartPulse className="w-8 h-8 text-primary" />
+            Monitoring Fleet
+          </h1>
+          <p className="text-muted-foreground">Autonomous discovery engine health and target management.</p>
         </div>
         <TargetDialog />
       </div>
@@ -59,25 +68,21 @@ export default async function TargetsPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search targets..."
+            placeholder="Search fleet..."
             className="pl-9 bg-card/50 border-border/50"
           />
         </div>
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
       </div>
 
       <div className="rounded-xl border border-border/50 bg-card/30 overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>
-              <TableHead>Target Name</TableHead>
-              <TableHead>Provider</TableHead>
-              <TableHead>Account / ID</TableHead>
+              <TableHead>Target Identity</TableHead>
+              <TableHead>Discovery Health</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Last Live</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right">Operations</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -91,31 +96,49 @@ export default async function TargetsPage() {
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-semibold">{target.name}</span>
-                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">
-                          {target.id.split('-')[0]}
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          @{target.external_identifier}
                         </span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">
-                      {target.provider}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {target.external_identifier}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2 cursor-help">
+                            {target.last_discovery_status === 'success' ? (
+                              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                            ) : target.last_discovery_status === 'failed' ? (
+                              <ShieldAlert className="w-4 h-4 text-destructive" />
+                            ) : (
+                              <Globe className="w-4 h-4 text-muted-foreground opacity-40" />
+                            )}
+                            <span className="text-xs capitalize">
+                              {target.last_discovery_status || 'idle'}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-popover border-border">
+                          <p className="text-xs font-semibold">Discovery Logic Output:</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {target.last_discovery_error || (target.last_discovery_status === 'success' ? 'Live discovery active' : 'Waiting for next cycle')}
+                          </p>
+                          <p className="text-[10px] mt-1 text-accent">Last check: {target.last_checked_at ? new Date(target.last_checked_at).toLocaleTimeString() : 'Never'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${
-                        target.status === 'active' ? 'bg-emerald-500 animate-pulse' : 
-                        target.status === 'error' ? 'bg-destructive' : 'bg-yellow-500'
-                      }`} />
-                      <span className="capitalize text-sm">{target.status}</span>
-                    </div>
+                    <Badge variant="outline" className={cn(
+                      "capitalize text-[10px] border-0 px-0",
+                      target.status === 'active' ? 'text-emerald-500' : 'text-muted-foreground'
+                    )}>
+                      {target.status}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {target.last_live_at ? new Date(target.last_live_at).toLocaleString() : 'Never'}
+                    {target.last_live_at ? new Date(target.last_live_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Never'}
                   </TableCell>
                   <TableCell className="text-right">
                     <TargetActionMenu target={target} />
@@ -124,8 +147,8 @@ export default async function TargetsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
-                  No monitoring targets found. Click the button above to add your first source.
+                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">
+                  No targets in the fleet.
                 </TableCell>
               </TableRow>
             )}
@@ -134,4 +157,8 @@ export default async function TargetsPage() {
       </div>
     </div>
   );
+}
+
+function cn(...classes: string[]) {
+  return classes.filter(Boolean).join(' ');
 }

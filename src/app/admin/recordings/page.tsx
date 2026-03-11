@@ -1,11 +1,40 @@
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Video, Calendar, Clock, Download, AlertTriangle, Loader2 } from 'lucide-react';
+import { Video, Calendar, Clock, Download, AlertTriangle, Loader2, Square, RefreshCcw } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Recording } from '@/types/database';
+import { stopActiveRecording, cleanupStaleRecording } from '@/lib/actions/recordings';
+
+async function StopButton({ id }: { id: string }) {
+  "use server"
+  return (
+    <form action={async () => {
+      "use server"
+      await stopActiveRecording(id);
+    }}>
+      <Button variant="destructive" size="icon" className="h-8 w-8" title="Stop Recording">
+        <Square className="h-3 w-3" />
+      </Button>
+    </form>
+  )
+}
+
+async function CleanupButton({ id }: { id: string }) {
+  "use server"
+  return (
+    <form action={async () => {
+      "use server"
+      await cleanupStaleRecording(id);
+    }}>
+      <Button variant="outline" size="icon" className="h-8 w-8 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/10" title="Cleanup Stale Job">
+        <RefreshCcw className="h-3 w-3" />
+      </Button>
+    </form>
+  )
+}
 
 export default async function RecordingsPage() {
   const supabase = await createClient();
@@ -41,7 +70,7 @@ export default async function RecordingsPage() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white">Capture Library</h1>
-          <p className="text-muted-foreground">Manage and review all cloud-recorded stream sessions.</p>
+          <p className="text-muted-foreground">Autonomous recording archive and job management.</p>
         </div>
       </div>
 
@@ -52,12 +81,11 @@ export default async function RecordingsPage() {
               <div className="relative aspect-video bg-muted overflow-hidden">
                 <Image 
                   src={rec.thumbnail_path || `https://picsum.photos/seed/${rec.id}/640/360`}
-                  alt="Recording thumbnail"
+                  alt="Thumbnail"
                   fill
-                  data-ai-hint="video thumbnail"
                   className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-60 group-hover:opacity-100"
                 />
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 flex gap-1">
                   <Badge className={`${getStatusColor(rec.status)} backdrop-blur-md border-0 shadow-lg capitalize`}>
                     {(rec.status === 'recording' || rec.status === 'processing') && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
                     {rec.status}
@@ -75,7 +103,7 @@ export default async function RecordingsPage() {
                     {rec.title || `Session ${rec.id.split('-')[0]}`}
                   </h3>
                   <p className="text-xs text-muted-foreground truncate">
-                    Source: <span className="text-accent uppercase font-mono">{rec.targets?.provider || rec.provider}</span> • {rec.targets?.name || 'Manual Ingest'}
+                    {rec.targets?.name || 'Manual Ingest'} • <span className="text-accent uppercase font-mono">{rec.targets?.provider || rec.provider}</span>
                   </p>
                 </div>
                 
@@ -93,9 +121,18 @@ export default async function RecordingsPage() {
                 <div className="flex gap-2 pt-2">
                   <Button asChild variant="outline" size="sm" className="flex-1 text-xs h-8 border-border/60">
                     <Link href={`/admin/recordings/${rec.id}`}>
-                      View Details
+                      Details
                     </Link>
                   </Button>
+                  
+                  {(rec.status === 'recording' || rec.status === 'processing') && (
+                    <StopButton id={rec.id} />
+                  )}
+                  
+                  {rec.status === 'recording' && rec.locked_at && (
+                    <CleanupButton id={rec.id} />
+                  )}
+
                   {rec.storage_path && (
                     <Button variant="secondary" size="icon" className="h-8 w-8">
                       <Download className="h-3 w-3" />
@@ -109,8 +146,8 @@ export default async function RecordingsPage() {
           <div className="col-span-full py-20 flex flex-col items-center justify-center text-muted-foreground space-y-4 border-2 border-dashed border-border/30 rounded-2xl">
             <Video className="w-12 h-12 opacity-10" />
             <div className="text-center">
-              <p className="font-medium">Library is empty</p>
-              <p className="text-xs">Once targets are active and streams go live, recordings will appear here.</p>
+              <p className="font-medium">No captures found</p>
+              <p className="text-xs">Recording sessions will appear here once live streams are detected.</p>
             </div>
           </div>
         )}

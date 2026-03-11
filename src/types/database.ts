@@ -3,6 +3,7 @@ export type TargetStatus = 'active' | 'paused' | 'error';
 export type RecordingStatus = 'processing' | 'recording' | 'completed' | 'failed';
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 export type UserRole = 'admin' | 'operator' | 'viewer';
+export type DiscoveryStatus = 'success' | 'failed' | 'offline';
 
 export interface Target {
   id: string;
@@ -14,6 +15,8 @@ export interface Target {
   check_interval_seconds: number;
   last_checked_at: string | null;
   last_live_at: string | null;
+  last_discovery_status: DiscoveryStatus | null;
+  last_discovery_error: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -36,6 +39,7 @@ export interface Recording {
   file_size_bytes: number | null;
   mime_type: string | null;
   error_message: string | null;
+  locked_at: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -59,7 +63,7 @@ export interface SystemLog {
 export interface RecordingEvent {
   id: string;
   recording_id: string | null;
-  target_id: string | null;
+  target_id: uuid | null;
   event_type: string;
   message: string;
   context: Record<string, unknown>;
