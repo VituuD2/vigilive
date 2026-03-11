@@ -99,7 +99,7 @@ export default async function TargetsPage() {
                       <div className="flex flex-col">
                         <span className="text-sm font-semibold">{target.name}</span>
                         <span className="text-[10px] text-muted-foreground font-mono">
-                          @{target.external_identifier}
+                        {target.external_identifier.startsWith('@') ? target.external_identifier : `@${target.external_identifier}`}
                         </span>
                       </div>
                     </div>
